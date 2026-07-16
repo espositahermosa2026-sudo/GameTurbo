@@ -33,4 +33,18 @@
         android:layout_marginTop="12dp"
         android:text="Activar panel flotante" />
 
+    <Button
+        android:id="@+id/floatingAppButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Abrir app en ventana flotante" />
+
+    <Button
+        android:id="@+id/recordButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Grabar pantalla" />
+
 </LinearLayout>

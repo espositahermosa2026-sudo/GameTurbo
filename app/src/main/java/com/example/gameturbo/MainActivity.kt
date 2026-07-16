@@ -1,6 +1,9 @@
 package com.example.gameturbo
 
+import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
+import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -8,6 +11,7 @@ import android.provider.Settings
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import rikka.shizuku.Shizuku
 
@@ -25,6 +29,25 @@ class MainActivity : AppCompatActivity() {
         updateStatus()
     }
 
+    private val screenCaptureLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK && result.data != null) {
+            val intent = Intent(this, ScreenRecordService::class.java)
+            intent.putExtra(ScreenRecordService.EXTRA_RESULT_CODE, result.resultCode)
+            intent.putExtra(ScreenRecordService.EXTRA_RESULT_DATA, result.data)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+            Toast.makeText(this, "Grabación iniciada", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Permiso de grabación denegado", Toast.LENGTH_SHORT).show()
+        }
+        updateStatus()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -33,6 +56,8 @@ class MainActivity : AppCompatActivity() {
         val turboButton: Button = findViewById(R.id.turboButton)
         val dndPermissionButton: Button = findViewById(R.id.dndPermissionButton)
         val overlayButton: Button = findViewById(R.id.overlayButton)
+        val floatingAppButton: Button = findViewById(R.id.floatingAppButton)
+        val recordButton: Button = findViewById(R.id.recordButton)
 
         Shizuku.addRequestPermissionResultListener(permissionListener)
 
@@ -70,7 +95,48 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Panel flotante activado", Toast.LENGTH_SHORT).show()
         }
 
+        floatingAppButton.setOnClickListener {
+            if (!ShizukuManager.hasPermission()) {
+                Toast.makeText(
+                    this,
+                    "Primero activa el permiso de Shizuku (botón Modo Turbo)",
+                    Toast.LENGTH_LONG
+                ).show()
+                return@setOnClickListener
+            }
+            showAppPickerDialog()
+        }
+
+        recordButton.setOnClickListener {
+            if (ScreenRecordService.isRecording) {
+                stopService(Intent(this, ScreenRecordService::class.java))
+                Toast.makeText(this, "Grabación detenida", Toast.LENGTH_SHORT).show()
+                updateStatus()
+            } else {
+                val projectionManager =
+                    getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                screenCaptureLauncher.launch(projectionManager.createScreenCaptureIntent())
+            }
+        }
+
         updateStatus()
+    }
+
+    private fun showAppPickerDialog() {
+        val apps = FreeformLauncher.listLaunchableApps(this)
+        val labels = apps.map { it.label }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("Elige una app para abrir flotando")
+            .setItems(labels) { _, index ->
+                val chosen = apps[index]
+                FreeformLauncher.launchFloating(this, chosen.packageName)
+                Toast.makeText(
+                    this,
+                    "Abriendo ${chosen.label} en ventana flotante (si tu equipo lo soporta)",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            .show()
     }
 
     private fun toggleTurbo() {
@@ -95,9 +161,11 @@ class MainActivity : AppCompatActivity() {
     private fun updateStatus() {
         val shizukuOk = ShizukuManager.isShizukuRunning() && ShizukuManager.hasPermission()
         val dndOk = DoNotDisturbController.hasPermission(this)
+        val recOk = ScreenRecordService.isRecording
         statusText.text = "Shizuku: ${if (shizukuOk) "OK" else "pendiente"} | " +
                 "No Molestar: ${if (dndOk) "OK" else "pendiente"} | " +
-                "Turbo: ${if (turboActive) "ACTIVO" else "inactivo"}"
+                "Turbo: ${if (turboActive) "ACTIVO" else "inactivo"} | " +
+                "Grabando: ${if (recOk) "SI" else "no"}"
     }
 
     override fun onDestroy() {
