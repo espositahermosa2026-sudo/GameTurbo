@@ -24,6 +24,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var statusText: TextView
     private var turboActive = false
+    private var autoDetectActive = false
 
     private val permissionListener = Shizuku.OnRequestPermissionResultListener { _, grantResult ->
         if (grantResult == android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -63,6 +64,7 @@ class MainActivity : AppCompatActivity() {
         val overlayButton: Button = findViewById(R.id.overlayButton)
         val floatingAppButton: Button = findViewById(R.id.floatingAppButton)
         val recordButton: Button = findViewById(R.id.recordButton)
+        val autoDetectButton: Button = findViewById(R.id.autoDetectButton)
 
         Shizuku.addRequestPermissionResultListener(permissionListener)
 
@@ -113,6 +115,43 @@ class MainActivity : AppCompatActivity() {
         }
 
         recordButton.setOnClickListener { toggleRecording() }
+
+        autoDetectButton.setOnClickListener {
+            if (!UsageAccessHelper.hasUsageAccess(this)) {
+                startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                Toast.makeText(
+                    this,
+                    "Activa el acceso de uso para Game Turbo y vuelve a tocar este botón",
+                    Toast.LENGTH_LONG
+                ).show()
+                return@setOnClickListener
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+                Toast.makeText(
+                    this,
+                    "Primero concede el permiso de panel flotante (botón Panel Flotante)",
+                    Toast.LENGTH_LONG
+                ).show()
+                return@setOnClickListener
+            }
+            if (autoDetectActive) {
+                stopService(Intent(this, AutoDetectService::class.java))
+                autoDetectActive = false
+                Toast.makeText(this, "Auto-detección desactivada", Toast.LENGTH_SHORT).show()
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(Intent(this, AutoDetectService::class.java))
+                } else {
+                    startService(Intent(this, AutoDetectService::class.java))
+                }
+                autoDetectActive = true
+                Toast.makeText(
+                    this,
+                    "Auto-detección activada: se activará solo al abrir un juego",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
 
         updateStatus()
         handleIntentAction(intent)

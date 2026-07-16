@@ -114,5 +114,20 @@
             android:paddingStart="20dp"
             android:elevation="2dp" />
 
+        <Button
+            android:id="@+id/autoDetectButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_card_button"
+            android:text="🎯  AUTO-ACTIVAR EN JUEGOS"
+            android:textColor="@color/gt_text_primary"
+            android:textSize="13sp"
+            android:letterSpacing="0.03"
+            android:textAllCaps="false"
+            android:gravity="center_vertical"
+            android:paddingStart="20dp"
+            android:elevation="2dp" />
+
     </LinearLayout>
 </ScrollView>

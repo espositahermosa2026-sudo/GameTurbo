@@ -26,6 +26,7 @@
 
         <activity
             android:name=".MainActivity"
+            android:launchMode="singleTop"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -35,6 +36,10 @@
 
         <service
             android:name=".OverlayService"
+            android:exported="false" />
+
+        <service
+            android:name=".AutoDetectService"
             android:exported="false" />
 
         <service
