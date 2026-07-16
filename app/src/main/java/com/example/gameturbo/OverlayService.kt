@@ -16,7 +16,6 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
@@ -26,14 +25,22 @@ class OverlayService : Service() {
 
     private lateinit var windowManager: WindowManager
     private lateinit var overlayView: View
-    private lateinit var fpsText: TextView
-    private lateinit var tempText: TextView
+    private lateinit var fpsValueText: TextView
+    private lateinit var cpuValueText: TextView
+    private lateinit var tempValueText: TextView
+    private lateinit var ramValueText: TextView
+    private lateinit var sparkline: SparklineView
 
     private val handler = Handler(Looper.getMainLooper())
     private var frameCount = 0
     private var lastFpsTimestamp = 0L
+    private var lastFps = 0
     private var turboOn = false
     private var dndOn = false
+
+    private val accentRed = Color.parseColor("#FF3B30")
+    private val accentGreen = Color.parseColor("#30D158")
+    private val textSecondary = Color.parseColor("#8C8C96")
 
     private val frameCallback = object : Choreographer.FrameCallback {
         override fun doFrame(frameTimeNanos: Long) {
@@ -41,18 +48,25 @@ class OverlayService : Service() {
             if (lastFpsTimestamp == 0L) lastFpsTimestamp = frameTimeNanos
             val elapsedMs = (frameTimeNanos - lastFpsTimestamp) / 1_000_000
             if (elapsedMs >= 1000) {
-                val fps = frameCount
+                lastFps = frameCount
                 frameCount = 0
                 lastFpsTimestamp = frameTimeNanos
-                handler.post { fpsText.text = "FPS  $fps" }
+                handler.post {
+                    fpsValueText.text = "$lastFps"
+                    sparkline.addSample(lastFps.toFloat())
+                }
             }
             Choreographer.getInstance().postFrameCallback(this)
         }
     }
 
-    private val tempUpdater = object : Runnable {
+    private val statsUpdater = object : Runnable {
         override fun run() {
-            tempText.text = "TEMP  ${readCpuTemperature()}"
+            tempValueText.text = readCpuTemperature()
+            val cpu = SystemStats.readCpuPercent()
+            cpuValueText.text = cpu?.let { "$it%" } ?: "N/D"
+            val (used, total) = SystemStats.readRamUsageGb(this@OverlayService)
+            ramValueText.text = "%.1f/%.1fGB".format(used, total)
             handler.postDelayed(this, 2000)
         }
     }
@@ -65,7 +79,7 @@ class OverlayService : Service() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         buildOverlayView()
         Choreographer.getInstance().postFrameCallback(frameCallback)
-        handler.post(tempUpdater)
+        handler.post(statsUpdater)
     }
 
     private fun startForegroundNotification() {
@@ -86,121 +100,150 @@ class OverlayService : Service() {
         startForeground(1, notification)
     }
 
-    private val accentRed = Color.parseColor("#FF3B30")
-
-    private fun styledChip(label: String): Button {
-        return Button(this).apply {
-            text = label
-            textSize = 11f
-            setTextColor(Color.WHITE)
-            setTypeface(Typeface.DEFAULT_BOLD)
-            isAllCaps = false
-            background = getDrawable(R.drawable.bg_overlay_chip)
-            setPadding(20, 6, 20, 6)
-            minWidth = 0
-            minimumWidth = 0
-            minHeight = 0
-            minimumHeight = 0
+    private fun statBlock(label: String, initialValue: String): Pair<LinearLayout, TextView> {
+        val block = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
         }
+        val value = TextView(this).apply {
+            text = initialValue
+            setTextColor(Color.WHITE)
+            textSize = 15f
+            setTypeface(Typeface.DEFAULT_BOLD)
+            gravity = Gravity.CENTER
+        }
+        val lbl = TextView(this).apply {
+            text = label
+            setTextColor(textSecondary)
+            textSize = 9f
+            gravity = Gravity.CENTER
+        }
+        block.addView(value)
+        block.addView(lbl)
+        return Pair(block, value)
+    }
+
+    private fun circularButton(icon: String, label: String, onClick: () -> Unit): Pair<LinearLayout, TextView> {
+        val wrapper = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+        }
+        val circleSize = 88
+        val iconText = TextView(this).apply {
+            text = icon
+            textSize = 16f
+            gravity = Gravity.CENTER
+            background = getDrawable(R.drawable.bg_overlay_circle)
+            layoutParams = LinearLayout.LayoutParams(circleSize, circleSize)
+            setOnClickListener { onClick() }
+        }
+        val lbl = TextView(this).apply {
+            text = label
+            setTextColor(textSecondary)
+            textSize = 8f
+            gravity = Gravity.CENTER
+            setPadding(0, 6, 0, 0)
+        }
+        wrapper.addView(iconText)
+        wrapper.addView(lbl)
+        return Pair(wrapper, iconText)
     }
 
     private fun buildOverlayView() {
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(28, 20, 28, 20)
+            setPadding(24, 18, 24, 18)
             background = getDrawable(R.drawable.bg_overlay_panel)
         }
 
-        val header = TextView(this).apply {
-            text = "TURBO HUD"
+        val headerRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val headerTitle = TextView(this).apply {
+            text = "🛡 TURBO HUD"
             setTextColor(accentRed)
-            textSize = 11f
+            textSize = 12f
             setTypeface(Typeface.DEFAULT_BOLD)
-            letterSpacing = 0.08f
+            letterSpacing = 0.05f
         }
+        val headerStatus = TextView(this).apply {
+            text = "  •  ACTIVO"
+            setTextColor(accentGreen)
+            textSize = 10f
+        }
+        headerRow.addView(headerTitle)
+        headerRow.addView(headerStatus)
 
-        fpsText = TextView(this).apply {
-            text = "FPS  --"
-            setTextColor(Color.WHITE)
-            textSize = 13f
-            setTypeface(Typeface.MONOSPACE)
-            setPadding(0, 8, 0, 0)
-        }
-        tempText = TextView(this).apply {
-            text = "TEMP  --"
-            setTextColor(Color.WHITE)
-            textSize = 13f
-            setTypeface(Typeface.MONOSPACE)
-            setPadding(0, 2, 0, 10)
-        }
-
-        val buttonRow = LinearLayout(this).apply {
+        val statsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 14, 0, 10)
         }
-        val buttonRow2 = LinearLayout(this).apply {
+        val (fpsBlock, fpsValue) = statBlock("FPS", "--")
+        val (cpuBlock, cpuValue) = statBlock("CPU", "--")
+        val (tempBlock, tempValue) = statBlock("TEMP", "--")
+        val (ramBlock, ramValue) = statBlock("RAM", "--")
+        fpsValueText = fpsValue
+        cpuValueText = cpuValue
+        tempValueText = tempValue
+        ramValueText = ramValue
+
+        val statParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        statsRow.addView(fpsBlock, statParams)
+        statsRow.addView(cpuBlock, statParams)
+        statsRow.addView(tempBlock, statParams)
+        statsRow.addView(ramBlock, statParams)
+
+        sparkline = SparklineView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 140)
+        }
+
+        val buttonsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 10, 0, 0)
+            setPadding(0, 16, 0, 0)
         }
 
-        val turboButton = styledChip("TURBO").apply {
-            setOnClickListener {
-                turboOn = !turboOn
-                text = if (turboOn) "TURBO ON" else "TURBO"
-                setTextColor(if (turboOn) accentRed else Color.WHITE)
-                if (turboOn && ShizukuManager.hasPermission()) {
-                    Thread {
-                        PerformanceBooster.killBackgroundProcesses()
-                        PerformanceBooster.setHighPerformanceMode()
-                    }.start()
-                }
+        val (turboWrap, turboIcon) = circularButton("⚡", "TURBO") {
+            turboOn = !turboOn
+            turboIcon.setTextColor(if (turboOn) accentRed else Color.WHITE)
+            if (turboOn && ShizukuManager.hasPermission()) {
+                Thread {
+                    PerformanceBooster.killBackgroundProcesses()
+                    PerformanceBooster.setHighPerformanceMode()
+                }.start()
             }
         }
-        val dndButton = styledChip("DND").apply {
-            setOnClickListener {
-                dndOn = !dndOn
-                text = if (dndOn) "DND ON" else "DND"
-                setTextColor(if (dndOn) accentRed else Color.WHITE)
-                if (dndOn) DoNotDisturbController.enable(this@OverlayService)
-                else DoNotDisturbController.disable(this@OverlayService)
-            }
+        val (dndWrap, dndIcon) = circularButton("🔕", "DND") {
+            dndOn = !dndOn
+            dndIcon.setTextColor(if (dndOn) accentRed else Color.WHITE)
+            if (dndOn) DoNotDisturbController.enable(this@OverlayService)
+            else DoNotDisturbController.disable(this@OverlayService)
         }
-        val closeButton = styledChip("X").apply {
-            setOnClickListener { stopSelf() }
+        val (winWrap, _) = circularButton("🪟", "VENTANA") {
+            val i = Intent(this@OverlayService, MainActivity::class.java)
+            i.action = MainActivity.ACTION_PICK_FLOATING_APP
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(i)
         }
-        val winButton = styledChip("WIN").apply {
-            setOnClickListener {
-                val i = Intent(this@OverlayService, MainActivity::class.java)
-                i.action = MainActivity.ACTION_PICK_FLOATING_APP
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(i)
-            }
+        val (recWrap, _) = circularButton("⏺", "GRABAR") {
+            val i = Intent(this@OverlayService, MainActivity::class.java)
+            i.action = MainActivity.ACTION_START_RECORDING
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(i)
         }
-        val recButton = styledChip("REC").apply {
-            setOnClickListener {
-                val i = Intent(this@OverlayService, MainActivity::class.java)
-                i.action = MainActivity.ACTION_START_RECORDING
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(i)
-            }
-        }
+        val (closeWrap, _) = circularButton("✕", "CERRAR") { stopSelf() }
 
-        fun marginParams() = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply { marginEnd = 12 }
+        val btnParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        buttonsRow.addView(turboWrap, btnParams)
+        buttonsRow.addView(dndWrap, btnParams)
+        buttonsRow.addView(winWrap, btnParams)
+        buttonsRow.addView(recWrap, btnParams)
+        buttonsRow.addView(closeWrap, btnParams)
 
-        buttonRow.addView(turboButton, marginParams())
-        buttonRow.addView(dndButton, marginParams())
-        buttonRow.addView(closeButton)
-
-        buttonRow2.addView(winButton, marginParams())
-        buttonRow2.addView(recButton)
-
-        panel.addView(header)
-        panel.addView(fpsText)
-        panel.addView(tempText)
-        panel.addView(buttonRow)
-        panel.addView(buttonRow2)
+        panel.addView(headerRow)
+        panel.addView(statsRow)
+        panel.addView(sparkline)
+        panel.addView(buttonsRow)
 
         overlayView = panel
 
@@ -210,7 +253,7 @@ class OverlayService : Service() {
             @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
 
         val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            720,
             WindowManager.LayoutParams.WRAP_CONTENT,
             overlayType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -219,13 +262,13 @@ class OverlayService : Service() {
         )
         params.gravity = Gravity.TOP or Gravity.START
         params.x = 0
-        params.y = 200
+        params.y = 100
 
         var initialX = 0
         var initialY = 0
         var touchX = 0f
         var touchY = 0f
-        overlayView.setOnTouchListener { _, event ->
+        headerRow.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     initialX = params.x
@@ -254,7 +297,7 @@ class OverlayService : Service() {
                 if (f.exists()) {
                     val raw = f.readText().trim().toFloatOrNull() ?: continue
                     val celsius = if (raw > 1000) raw / 1000 else raw
-                    if (celsius in 10f..120f) return "${celsius.toInt()}°C"
+                    if (celsius in 10f..120f) return "${celsius.toInt()}°"
                 }
             }
             "N/D"
