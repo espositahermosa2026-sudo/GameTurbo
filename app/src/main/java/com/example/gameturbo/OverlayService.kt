@@ -6,6 +6,7 @@ import android.app.Service
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.Typeface
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -43,7 +44,7 @@ class OverlayService : Service() {
                 val fps = frameCount
                 frameCount = 0
                 lastFpsTimestamp = frameTimeNanos
-                handler.post { fpsText.text = "FPS: $fps" }
+                handler.post { fpsText.text = "FPS  $fps" }
             }
             Choreographer.getInstance().postFrameCallback(this)
         }
@@ -51,7 +52,7 @@ class OverlayService : Service() {
 
     private val tempUpdater = object : Runnable {
         override fun run() {
-            tempText.text = "Temp: ${readCpuTemperature()}"
+            tempText.text = "TEMP  ${readCpuTemperature()}"
             handler.postDelayed(this, 2000)
         }
     }
@@ -85,34 +86,63 @@ class OverlayService : Service() {
         startForeground(1, notification)
     }
 
+    private val accentRed = Color.parseColor("#FF3B30")
+
+    private fun styledChip(label: String): Button {
+        return Button(this).apply {
+            text = label
+            textSize = 11f
+            setTextColor(Color.WHITE)
+            setTypeface(Typeface.DEFAULT_BOLD)
+            isAllCaps = false
+            background = getDrawable(R.drawable.bg_overlay_chip)
+            setPadding(20, 6, 20, 6)
+            minWidth = 0
+            minimumWidth = 0
+            minHeight = 0
+            minimumHeight = 0
+        }
+    }
+
     private fun buildOverlayView() {
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(24, 16, 24, 16)
-            setBackgroundColor(Color.parseColor("#CC1E1E23"))
+            setPadding(28, 20, 28, 20)
+            background = getDrawable(R.drawable.bg_overlay_panel)
+        }
+
+        val header = TextView(this).apply {
+            text = "GAME SPACE"
+            setTextColor(accentRed)
+            textSize = 11f
+            setTypeface(Typeface.DEFAULT_BOLD)
+            letterSpacing = 0.08f
         }
 
         fpsText = TextView(this).apply {
-            text = "FPS: --"
+            text = "FPS  --"
             setTextColor(Color.WHITE)
-            textSize = 14f
+            textSize = 13f
+            setTypeface(Typeface.MONOSPACE)
+            setPadding(0, 8, 0, 0)
         }
         tempText = TextView(this).apply {
-            text = "Temp: --"
+            text = "TEMP  --"
             setTextColor(Color.WHITE)
-            textSize = 14f
+            textSize = 13f
+            setTypeface(Typeface.MONOSPACE)
+            setPadding(0, 2, 0, 10)
         }
 
         val buttonRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
         }
 
-        val turboButton = Button(this).apply {
-            text = "Turbo"
-            textSize = 11f
+        val turboButton = styledChip("TURBO").apply {
             setOnClickListener {
                 turboOn = !turboOn
-                text = if (turboOn) "Turbo ON" else "Turbo"
+                text = if (turboOn) "TURBO ON" else "TURBO"
+                setTextColor(if (turboOn) accentRed else Color.WHITE)
                 if (turboOn && ShizukuManager.hasPermission()) {
                     Thread {
                         PerformanceBooster.killBackgroundProcesses()
@@ -121,26 +151,29 @@ class OverlayService : Service() {
                 }
             }
         }
-        val dndButton = Button(this).apply {
-            text = "DND"
-            textSize = 11f
+        val dndButton = styledChip("DND").apply {
             setOnClickListener {
                 dndOn = !dndOn
                 text = if (dndOn) "DND ON" else "DND"
+                setTextColor(if (dndOn) accentRed else Color.WHITE)
                 if (dndOn) DoNotDisturbController.enable(this@OverlayService)
                 else DoNotDisturbController.disable(this@OverlayService)
             }
         }
-        val closeButton = Button(this).apply {
-            text = "X"
-            textSize = 11f
+        val closeButton = styledChip("X").apply {
             setOnClickListener { stopSelf() }
         }
 
-        buttonRow.addView(turboButton)
-        buttonRow.addView(dndButton)
+        val margin8 = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { marginEnd = 12 }
+
+        buttonRow.addView(turboButton, margin8)
+        buttonRow.addView(dndButton, margin8)
         buttonRow.addView(closeButton)
 
+        panel.addView(header)
         panel.addView(fpsText)
         panel.addView(tempText)
         panel.addView(buttonRow)

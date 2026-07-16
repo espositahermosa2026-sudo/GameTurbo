@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="gt_background">#0A0A0D</color>
+    <color name="gt_card">#16161C</color>
+    <color name="gt_accent">#FF3B30</color>
+    <color name="gt_accent_dim">#802A1F</color>
+    <color name="gt_text_primary">#FFFFFF</color>
+    <color name="gt_text_secondary">#8C8C96</color>
+</resources>

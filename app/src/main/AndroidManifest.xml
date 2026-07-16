@@ -22,7 +22,7 @@
         android:label="Game Turbo"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:theme="@style/Theme.AppCompat.DayNight">
+        android:theme="@style/Theme.GameTurbo">
 
         <activity
             android:name=".MainActivity"

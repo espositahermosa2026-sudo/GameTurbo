@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.GameTurbo" parent="Theme.AppCompat.NoActionBar">
+        <item name="colorPrimary">@color/gt_accent</item>
+        <item name="colorPrimaryDark">@color/gt_background</item>
+        <item name="colorAccent">@color/gt_accent</item>
+        <item name="android:windowBackground">@color/gt_background</item>
+        <item name="android:statusBarColor">@color/gt_background</item>
+        <item name="android:navigationBarColor">@color/gt_background</item>
+    </style>
+</resources>
