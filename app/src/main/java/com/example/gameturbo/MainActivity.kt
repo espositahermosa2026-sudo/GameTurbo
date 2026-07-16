@@ -17,6 +17,11 @@ import rikka.shizuku.Shizuku
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        const val ACTION_START_RECORDING = "com.example.gameturbo.START_RECORDING"
+        const val ACTION_PICK_FLOATING_APP = "com.example.gameturbo.PICK_FLOATING_APP"
+    }
+
     private lateinit var statusText: TextView
     private var turboActive = false
 
@@ -107,19 +112,42 @@ class MainActivity : AppCompatActivity() {
             showAppPickerDialog()
         }
 
-        recordButton.setOnClickListener {
-            if (ScreenRecordService.isRecording) {
-                stopService(Intent(this, ScreenRecordService::class.java))
-                Toast.makeText(this, "Grabación detenida", Toast.LENGTH_SHORT).show()
-                updateStatus()
-            } else {
-                val projectionManager =
-                    getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                screenCaptureLauncher.launch(projectionManager.createScreenCaptureIntent())
-            }
-        }
+        recordButton.setOnClickListener { toggleRecording() }
 
         updateStatus()
+        handleIntentAction(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntentAction(intent)
+    }
+
+    private fun handleIntentAction(intent: Intent?) {
+        when (intent?.action) {
+            ACTION_START_RECORDING -> toggleRecording()
+            ACTION_PICK_FLOATING_APP -> {
+                if (ShizukuManager.hasPermission()) showAppPickerDialog()
+                else Toast.makeText(
+                    this,
+                    "Primero activa el permiso de Shizuku (botón Modo Turbo)",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    private fun toggleRecording() {
+        if (ScreenRecordService.isRecording) {
+            stopService(Intent(this, ScreenRecordService::class.java))
+            Toast.makeText(this, "Grabación detenida", Toast.LENGTH_SHORT).show()
+            updateStatus()
+        } else {
+            val projectionManager =
+                getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            screenCaptureLauncher.launch(projectionManager.createScreenCaptureIntent())
+        }
     }
 
     private fun showAppPickerDialog() {
