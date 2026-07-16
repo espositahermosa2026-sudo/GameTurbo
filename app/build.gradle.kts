@@ -10,7 +10,7 @@ android {
     defaultConfig {
         applicationId = "com.example.gameturbo"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 33
         versionCode = 1
         versionName = "1.0"
     }
@@ -40,9 +40,6 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-
-    // Shizuku API: permite ejecutar comandos con permisos elevados
-    // sin necesidad de root, a través del servicio Shizuku instalado por el usuario.
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
 }

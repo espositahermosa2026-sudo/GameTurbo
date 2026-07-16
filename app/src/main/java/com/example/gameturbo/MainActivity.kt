@@ -1,6 +1,8 @@
 package com.example.gameturbo
 
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Button
@@ -30,6 +32,7 @@ class MainActivity : AppCompatActivity() {
         statusText = findViewById(R.id.statusText)
         val turboButton: Button = findViewById(R.id.turboButton)
         val dndPermissionButton: Button = findViewById(R.id.dndPermissionButton)
+        val overlayButton: Button = findViewById(R.id.overlayButton)
 
         Shizuku.addRequestPermissionResultListener(permissionListener)
 
@@ -49,13 +52,30 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
         }
 
+        overlayButton.setOnClickListener {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+                startActivity(intent)
+                Toast.makeText(
+                    this,
+                    "Activa el permiso y vuelve a tocar este botón",
+                    Toast.LENGTH_LONG
+                ).show()
+                return@setOnClickListener
+            }
+            startService(Intent(this, OverlayService::class.java))
+            Toast.makeText(this, "Panel flotante activado", Toast.LENGTH_SHORT).show()
+        }
+
         updateStatus()
     }
 
     private fun toggleTurbo() {
         turboActive = !turboActive
         if (turboActive) {
-            // Ejecutar en un hilo aparte: las llamadas a Shizuku no deben ir en el hilo principal
             Thread {
                 PerformanceBooster.killBackgroundProcesses()
                 PerformanceBooster.setHighPerformanceMode()
