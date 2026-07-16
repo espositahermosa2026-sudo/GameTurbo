@@ -8,14 +8,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="28dp">
+        android:padding="24dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="TURBO HUD"
             android:textColor="@color/gt_accent"
-            android:textSize="28sp"
+            android:textSize="26sp"
             android:textStyle="bold"
             android:letterSpacing="0.08"
             android:layout_marginBottom="4dp" />
@@ -25,109 +25,214 @@
             android:layout_height="wrap_content"
             android:text="GAME TURBO · MODO RENDIMIENTO"
             android:textColor="@color/gt_text_secondary"
-            android:textSize="11sp"
+            android:textSize="10sp"
             android:letterSpacing="0.06"
-            android:layout_marginBottom="20dp" />
+            android:layout_marginBottom="16dp" />
 
         <TextView
             android:id="@+id/statusText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_card_button"
-            android:padding="14dp"
+            android:padding="12dp"
             android:textColor="@color/gt_text_secondary"
-            android:textSize="12sp"
+            android:textSize="11sp"
             android:fontFamily="monospace"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="18dp" />
 
-        <Button
-            android:id="@+id/turboButton"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:background="@drawable/bg_card_button"
-            android:text="⚡  ACTIVAR MODO TURBO"
-            android:textColor="@color/gt_text_primary"
-            android:textSize="13sp"
-            android:letterSpacing="0.03"
-            android:textAllCaps="false"
+            android:layout_height="60dp"
+            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingStart="20dp"
-            android:elevation="2dp" />
+            android:background="@drawable/bg_card_button"
+            android:paddingStart="18dp"
+            android:paddingEnd="14dp"
+            android:layout_marginBottom="10dp">
 
-        <Button
-            android:id="@+id/dndPermissionButton"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="14dp"
-            android:background="@drawable/bg_card_button"
-            android:text="🔕  PERMISO NO MOLESTAR"
-            android:textColor="@color/gt_text_primary"
-            android:textSize="13sp"
-            android:letterSpacing="0.03"
-            android:textAllCaps="false"
-            android:gravity="center_vertical"
-            android:paddingStart="20dp"
-            android:elevation="2dp" />
+            <TextView
+                android:layout_width="28dp"
+                android:layout_height="wrap_content"
+                android:text="⚡"
+                android:textSize="18sp" />
 
-        <Button
-            android:id="@+id/overlayButton"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="14dp"
-            android:background="@drawable/bg_card_button"
-            android:text="🎮  PANEL FLOTANTE"
-            android:textColor="@color/gt_text_primary"
-            android:textSize="13sp"
-            android:letterSpacing="0.03"
-            android:textAllCaps="false"
-            android:gravity="center_vertical"
-            android:paddingStart="20dp"
-            android:elevation="2dp" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Modo Turbo"
+                android:textColor="@color/gt_text_primary"
+                android:textSize="14sp" />
 
-        <Button
-            android:id="@+id/floatingAppButton"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="14dp"
-            android:background="@drawable/bg_card_button"
-            android:text="🪟  VENTANA FLOTANTE"
-            android:textColor="@color/gt_text_primary"
-            android:textSize="13sp"
-            android:letterSpacing="0.03"
-            android:textAllCaps="false"
-            android:gravity="center_vertical"
-            android:paddingStart="20dp"
-            android:elevation="2dp" />
+            <Switch
+                android:id="@+id/turboSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:thumbTint="@color/switch_thumb_color"
+                android:trackTint="@color/switch_track_color" />
+        </LinearLayout>
 
-        <Button
-            android:id="@+id/recordButton"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="14dp"
-            android:background="@drawable/bg_card_button"
-            android:text="⏺  GRABAR PANTALLA"
-            android:textColor="@color/gt_text_primary"
-            android:textSize="13sp"
-            android:letterSpacing="0.03"
-            android:textAllCaps="false"
+            android:layout_height="60dp"
+            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingStart="20dp"
-            android:elevation="2dp" />
+            android:background="@drawable/bg_card_button"
+            android:paddingStart="18dp"
+            android:paddingEnd="14dp"
+            android:layout_marginBottom="10dp">
 
-        <Button
-            android:id="@+id/autoDetectButton"
+            <TextView
+                android:layout_width="28dp"
+                android:layout_height="wrap_content"
+                android:text="🔕"
+                android:textSize="18sp" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="No Molestar"
+                android:textColor="@color/gt_text_primary"
+                android:textSize="14sp" />
+
+            <Switch
+                android:id="@+id/dndSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:thumbTint="@color/switch_thumb_color"
+                android:trackTint="@color/switch_track_color" />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="14dp"
-            android:background="@drawable/bg_card_button"
-            android:text="🎯  AUTO-ACTIVAR EN JUEGOS"
-            android:textColor="@color/gt_text_primary"
-            android:textSize="13sp"
-            android:letterSpacing="0.03"
-            android:textAllCaps="false"
+            android:layout_height="60dp"
+            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingStart="20dp"
-            android:elevation="2dp" />
+            android:background="@drawable/bg_card_button"
+            android:paddingStart="18dp"
+            android:paddingEnd="14dp"
+            android:layout_marginBottom="10dp">
+
+            <TextView
+                android:layout_width="28dp"
+                android:layout_height="wrap_content"
+                android:text="🎮"
+                android:textSize="18sp" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Panel Flotante"
+                android:textColor="@color/gt_text_primary"
+                android:textSize="14sp" />
+
+            <Switch
+                android:id="@+id/overlaySwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:thumbTint="@color/switch_thumb_color"
+                android:trackTint="@color/switch_track_color" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/floatingAppRow"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_card_button"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
+            android:layout_marginBottom="10dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:layout_width="28dp"
+                android:layout_height="wrap_content"
+                android:text="🪟"
+                android:textSize="18sp" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Ventana Flotante"
+                android:textColor="@color/gt_text_primary"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="›"
+                android:textColor="@color/gt_accent"
+                android:textSize="20sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_card_button"
+            android:paddingStart="18dp"
+            android:paddingEnd="14dp"
+            android:layout_marginBottom="10dp">
+
+            <TextView
+                android:layout_width="28dp"
+                android:layout_height="wrap_content"
+                android:text="⏺"
+                android:textSize="18sp" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Grabar Pantalla"
+                android:textColor="@color/gt_text_primary"
+                android:textSize="14sp" />
+
+            <Switch
+                android:id="@+id/recordSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:thumbTint="@color/switch_thumb_color"
+                android:trackTint="@color/switch_track_color" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_card_button"
+            android:paddingStart="18dp"
+            android:paddingEnd="14dp">
+
+            <TextView
+                android:layout_width="28dp"
+                android:layout_height="wrap_content"
+                android:text="🎯"
+                android:textSize="18sp" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Auto-activar en Juegos"
+                android:textColor="@color/gt_text_primary"
+                android:textSize="14sp" />
+
+            <Switch
+                android:id="@+id/autoDetectSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:thumbTint="@color/switch_thumb_color"
+                android:trackTint="@color/switch_track_color" />
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>

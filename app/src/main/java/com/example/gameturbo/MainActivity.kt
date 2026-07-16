@@ -8,7 +8,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,7 +24,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private lateinit var statusText: TextView
+    private lateinit var turboSwitch: Switch
+    private lateinit var dndSwitch: Switch
+    private lateinit var overlaySwitch: Switch
+    private lateinit var recordSwitch: Switch
+    private lateinit var autoDetectSwitch: Switch
+
     private var turboActive = false
+    private var overlayActive = false
     private var autoDetectActive = false
 
     private val permissionListener = Shizuku.OnRequestPermissionResultListener { _, grantResult ->
@@ -47,8 +55,10 @@ class MainActivity : AppCompatActivity() {
             } else {
                 startService(intent)
             }
+            setSwitchSilently(recordSwitch, true)
             Toast.makeText(this, "Grabación iniciada", Toast.LENGTH_SHORT).show()
         } else {
+            setSwitchSilently(recordSwitch, false)
             Toast.makeText(this, "Permiso de grabación denegado", Toast.LENGTH_SHORT).show()
         }
         updateStatus()
@@ -59,97 +69,116 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         statusText = findViewById(R.id.statusText)
-        val turboButton: Button = findViewById(R.id.turboButton)
-        val dndPermissionButton: Button = findViewById(R.id.dndPermissionButton)
-        val overlayButton: Button = findViewById(R.id.overlayButton)
-        val floatingAppButton: Button = findViewById(R.id.floatingAppButton)
-        val recordButton: Button = findViewById(R.id.recordButton)
-        val autoDetectButton: Button = findViewById(R.id.autoDetectButton)
+        turboSwitch = findViewById(R.id.turboSwitch)
+        dndSwitch = findViewById(R.id.dndSwitch)
+        overlaySwitch = findViewById(R.id.overlaySwitch)
+        recordSwitch = findViewById(R.id.recordSwitch)
+        autoDetectSwitch = findViewById(R.id.autoDetectSwitch)
+        val floatingAppRow: LinearLayout = findViewById(R.id.floatingAppRow)
 
         Shizuku.addRequestPermissionResultListener(permissionListener)
 
-        turboButton.setOnClickListener {
-            if (!ShizukuManager.isShizukuRunning()) {
-                Toast.makeText(this, "Shizuku no está corriendo. Ábrelo primero.", Toast.LENGTH_LONG).show()
-                return@setOnClickListener
+        turboSwitch.setOnCheckedChangeListener { _, checked ->
+            if (checked) {
+                if (!ShizukuManager.isShizukuRunning()) {
+                    setSwitchSilently(turboSwitch, false)
+                    Toast.makeText(this, "Shizuku no está corriendo. Ábrelo primero.", Toast.LENGTH_LONG).show()
+                    return@setOnCheckedChangeListener
+                }
+                if (!ShizukuManager.hasPermission()) {
+                    setSwitchSilently(turboSwitch, false)
+                    ShizukuManager.requestPermission()
+                    return@setOnCheckedChangeListener
+                }
+                turboActive = true
+                Thread {
+                    PerformanceBooster.killBackgroundProcesses()
+                    PerformanceBooster.setHighPerformanceMode()
+                    runOnUiThread {
+                        DoNotDisturbController.enable(this)
+                        setSwitchSilently(dndSwitch, true)
+                        updateStatus()
+                        Toast.makeText(this, "Modo Turbo activado", Toast.LENGTH_SHORT).show()
+                    }
+                }.start()
+            } else {
+                turboActive = false
+                updateStatus()
             }
+        }
+
+        dndSwitch.setOnCheckedChangeListener { _, checked ->
+            if (checked && !DoNotDisturbController.hasPermission(this)) {
+                setSwitchSilently(dndSwitch, false)
+                startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+                Toast.makeText(this, "Concede el permiso y vuelve a activar el switch", Toast.LENGTH_LONG).show()
+                return@setOnCheckedChangeListener
+            }
+            if (checked) DoNotDisturbController.enable(this) else DoNotDisturbController.disable(this)
+            updateStatus()
+        }
+
+        overlaySwitch.setOnCheckedChangeListener { _, checked ->
+            if (checked) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+                    setSwitchSilently(overlaySwitch, false)
+                    startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+                    Toast.makeText(this, "Activa el permiso y vuelve a activar el switch", Toast.LENGTH_LONG).show()
+                    return@setOnCheckedChangeListener
+                }
+                startService(Intent(this, OverlayService::class.java))
+                overlayActive = true
+                Toast.makeText(this, "Panel flotante activado", Toast.LENGTH_SHORT).show()
+            } else {
+                stopService(Intent(this, OverlayService::class.java))
+                overlayActive = false
+            }
+        }
+
+        floatingAppRow.setOnClickListener {
             if (!ShizukuManager.hasPermission()) {
-                ShizukuManager.requestPermission()
-                return@setOnClickListener
-            }
-            toggleTurbo()
-        }
-
-        dndPermissionButton.setOnClickListener {
-            startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
-        }
-
-        overlayButton.setOnClickListener {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:$packageName")
-                )
-                startActivity(intent)
-                Toast.makeText(
-                    this,
-                    "Activa el permiso y vuelve a tocar este botón",
-                    Toast.LENGTH_LONG
-                ).show()
-                return@setOnClickListener
-            }
-            startService(Intent(this, OverlayService::class.java))
-            Toast.makeText(this, "Panel flotante activado", Toast.LENGTH_SHORT).show()
-        }
-
-        floatingAppButton.setOnClickListener {
-            if (!ShizukuManager.hasPermission()) {
-                Toast.makeText(
-                    this,
-                    "Primero activa el permiso de Shizuku (botón Modo Turbo)",
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(this, "Primero activa el switch de Modo Turbo", Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
             showAppPickerDialog()
         }
 
-        recordButton.setOnClickListener { toggleRecording() }
-
-        autoDetectButton.setOnClickListener {
-            if (!UsageAccessHelper.hasUsageAccess(this)) {
-                startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
-                Toast.makeText(
-                    this,
-                    "Activa el acceso de uso para Game Turbo y vuelve a tocar este botón",
-                    Toast.LENGTH_LONG
-                ).show()
-                return@setOnClickListener
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-                Toast.makeText(
-                    this,
-                    "Primero concede el permiso de panel flotante (botón Panel Flotante)",
-                    Toast.LENGTH_LONG
-                ).show()
-                return@setOnClickListener
-            }
-            if (autoDetectActive) {
-                stopService(Intent(this, AutoDetectService::class.java))
-                autoDetectActive = false
-                Toast.makeText(this, "Auto-detección desactivada", Toast.LENGTH_SHORT).show()
+        recordSwitch.setOnCheckedChangeListener { _, checked ->
+            if (checked) {
+                if (ScreenRecordService.isRecording) return@setOnCheckedChangeListener
+                val projectionManager =
+                    getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                screenCaptureLauncher.launch(projectionManager.createScreenCaptureIntent())
             } else {
+                stopService(Intent(this, ScreenRecordService::class.java))
+                Toast.makeText(this, "Grabación detenida", Toast.LENGTH_SHORT).show()
+                updateStatus()
+            }
+        }
+
+        autoDetectSwitch.setOnCheckedChangeListener { _, checked ->
+            if (checked) {
+                if (!UsageAccessHelper.hasUsageAccess(this)) {
+                    setSwitchSilently(autoDetectSwitch, false)
+                    startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                    Toast.makeText(this, "Activa el acceso de uso y vuelve a activar el switch", Toast.LENGTH_LONG).show()
+                    return@setOnCheckedChangeListener
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+                    setSwitchSilently(autoDetectSwitch, false)
+                    Toast.makeText(this, "Primero activa el switch de Panel Flotante una vez", Toast.LENGTH_LONG).show()
+                    return@setOnCheckedChangeListener
+                }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(Intent(this, AutoDetectService::class.java))
                 } else {
                     startService(Intent(this, AutoDetectService::class.java))
                 }
                 autoDetectActive = true
-                Toast.makeText(
-                    this,
-                    "Auto-detección activada: se activará solo al abrir un juego",
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(this, "Se activará solo al abrir un juego", Toast.LENGTH_LONG).show()
+            } else {
+                stopService(Intent(this, AutoDetectService::class.java))
+                autoDetectActive = false
             }
         }
 
@@ -165,27 +194,29 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleIntentAction(intent: Intent?) {
         when (intent?.action) {
-            ACTION_START_RECORDING -> toggleRecording()
+            ACTION_START_RECORDING -> if (!recordSwitch.isChecked) recordSwitch.isChecked = true
             ACTION_PICK_FLOATING_APP -> {
                 if (ShizukuManager.hasPermission()) showAppPickerDialog()
-                else Toast.makeText(
-                    this,
-                    "Primero activa el permiso de Shizuku (botón Modo Turbo)",
-                    Toast.LENGTH_LONG
-                ).show()
+                else Toast.makeText(this, "Primero activa el switch de Modo Turbo", Toast.LENGTH_LONG).show()
             }
         }
     }
 
-    private fun toggleRecording() {
-        if (ScreenRecordService.isRecording) {
-            stopService(Intent(this, ScreenRecordService::class.java))
-            Toast.makeText(this, "Grabación detenida", Toast.LENGTH_SHORT).show()
-            updateStatus()
-        } else {
-            val projectionManager =
-                getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-            screenCaptureLauncher.launch(projectionManager.createScreenCaptureIntent())
+    private fun setSwitchSilently(switch: Switch, checked: Boolean) {
+        switch.setOnCheckedChangeListener(null)
+        switch.isChecked = checked
+        when (switch) {
+            turboSwitch -> switch.setOnCheckedChangeListener { _, c -> if (!c) { turboActive = false; updateStatus() } }
+            dndSwitch -> switch.setOnCheckedChangeListener { _, c ->
+                if (c) DoNotDisturbController.enable(this) else DoNotDisturbController.disable(this)
+                updateStatus()
+            }
+            recordSwitch -> switch.setOnCheckedChangeListener { _, c ->
+                if (!c) {
+                    stopService(Intent(this, ScreenRecordService::class.java))
+                    updateStatus()
+                }
+            }
         }
     }
 
@@ -197,32 +228,9 @@ class MainActivity : AppCompatActivity() {
             .setItems(labels) { _, index ->
                 val chosen = apps[index]
                 FreeformLauncher.launchFloating(this, chosen.packageName)
-                Toast.makeText(
-                    this,
-                    "Abriendo ${chosen.label} en ventana flotante (si tu equipo lo soporta)",
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(this, "Abriendo ${chosen.label} en ventana flotante (si tu equipo lo soporta)", Toast.LENGTH_LONG).show()
             }
             .show()
-    }
-
-    private fun toggleTurbo() {
-        turboActive = !turboActive
-        if (turboActive) {
-            Thread {
-                PerformanceBooster.killBackgroundProcesses()
-                PerformanceBooster.setHighPerformanceMode()
-                runOnUiThread {
-                    DoNotDisturbController.enable(this)
-                    updateStatus()
-                    Toast.makeText(this, "Modo Turbo activado", Toast.LENGTH_SHORT).show()
-                }
-            }.start()
-        } else {
-            DoNotDisturbController.disable(this)
-            updateStatus()
-            Toast.makeText(this, "Modo Turbo desactivado", Toast.LENGTH_SHORT).show()
-        }
     }
 
     private fun updateStatus() {
