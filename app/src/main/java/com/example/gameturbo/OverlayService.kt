@@ -112,7 +112,7 @@ class OverlayService : Service() {
         }
 
         val header = TextView(this).apply {
-            text = "GAME SPACE"
+            text = "TURBO HUD"
             setTextColor(accentRed)
             textSize = 11f
             setTypeface(Typeface.DEFAULT_BOLD)
@@ -136,6 +136,10 @@ class OverlayService : Service() {
 
         val buttonRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
+        }
+        val buttonRow2 = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 10, 0, 0)
         }
 
         val turboButton = styledChip("TURBO").apply {
@@ -163,20 +167,40 @@ class OverlayService : Service() {
         val closeButton = styledChip("X").apply {
             setOnClickListener { stopSelf() }
         }
+        val winButton = styledChip("WIN").apply {
+            setOnClickListener {
+                val i = Intent(this@OverlayService, MainActivity::class.java)
+                i.action = MainActivity.ACTION_PICK_FLOATING_APP
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(i)
+            }
+        }
+        val recButton = styledChip("REC").apply {
+            setOnClickListener {
+                val i = Intent(this@OverlayService, MainActivity::class.java)
+                i.action = MainActivity.ACTION_START_RECORDING
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(i)
+            }
+        }
 
-        val margin8 = LinearLayout.LayoutParams(
+        fun marginParams() = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         ).apply { marginEnd = 12 }
 
-        buttonRow.addView(turboButton, margin8)
-        buttonRow.addView(dndButton, margin8)
+        buttonRow.addView(turboButton, marginParams())
+        buttonRow.addView(dndButton, marginParams())
         buttonRow.addView(closeButton)
+
+        buttonRow2.addView(winButton, marginParams())
+        buttonRow2.addView(recButton)
 
         panel.addView(header)
         panel.addView(fpsText)
         panel.addView(tempText)
         panel.addView(buttonRow)
+        panel.addView(buttonRow2)
 
         overlayView = panel
 

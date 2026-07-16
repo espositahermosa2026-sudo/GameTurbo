@@ -13,7 +13,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="GAME SPACE"
+            android:text="TURBO HUD"
             android:textColor="@color/gt_accent"
             android:textSize="28sp"
             android:textStyle="bold"
