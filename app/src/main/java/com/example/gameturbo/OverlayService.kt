@@ -29,6 +29,8 @@ class OverlayService : Service() {
     private lateinit var cpuValueText: TextView
     private lateinit var tempValueText: TextView
     private lateinit var ramValueText: TextView
+    private lateinit var battValueText: TextView
+    private lateinit var wifiValueText: TextView
     private lateinit var sparkline: SparklineView
 
     private val handler = Handler(Looper.getMainLooper())
@@ -67,6 +69,8 @@ class OverlayService : Service() {
             cpuValueText.text = cpu?.let { "$it%" } ?: "N/D"
             val (used, total) = SystemStats.readRamUsageGb(this@OverlayService)
             ramValueText.text = "%.1f/%.1fGB".format(used, total)
+            battValueText.text = SystemStats.readBatteryPercent(this@OverlayService)?.let { "$it%" } ?: "N/D"
+            wifiValueText.text = SystemStats.readWifiStatus(this@OverlayService)
             handler.postDelayed(this, 2000)
         }
     }
@@ -193,6 +197,17 @@ class OverlayService : Service() {
         statsRow.addView(tempBlock, statParams)
         statsRow.addView(ramBlock, statParams)
 
+        val statsRow2 = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 0, 0, 10)
+        }
+        val (battBlock, battValue) = statBlock("BATERIA", "--")
+        val (wifiBlock, wifiValue) = statBlock("WIFI", "--")
+        battValueText = battValue
+        wifiValueText = wifiValue
+        statsRow2.addView(battBlock, statParams)
+        statsRow2.addView(wifiBlock, statParams)
+
         sparkline = SparklineView(this).apply {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 140)
         }
@@ -250,6 +265,7 @@ class OverlayService : Service() {
 
         panel.addView(headerRow)
         panel.addView(statsRow)
+        panel.addView(statsRow2)
         panel.addView(sparkline)
         panel.addView(buttonsRow)
 

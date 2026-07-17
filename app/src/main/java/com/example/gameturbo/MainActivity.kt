@@ -3,6 +3,7 @@ package com.example.gameturbo
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Build
@@ -24,7 +25,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private lateinit var statusText: TextView
-    private lateinit var turboSwitch: Switch
+    private lateinit var turboDial: TextView
     private lateinit var dndSwitch: Switch
     private lateinit var overlaySwitch: Switch
     private lateinit var recordSwitch: Switch
@@ -33,6 +34,8 @@ class MainActivity : AppCompatActivity() {
     private var turboActive = false
     private var overlayActive = false
     private var autoDetectActive = false
+
+    private val accentRed = Color.parseColor("#FF3B30")
 
     private val permissionListener = Shizuku.OnRequestPermissionResultListener { _, grantResult ->
         if (grantResult == android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -69,7 +72,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         statusText = findViewById(R.id.statusText)
-        turboSwitch = findViewById(R.id.turboSwitch)
+        turboDial = findViewById(R.id.turboDial)
         dndSwitch = findViewById(R.id.dndSwitch)
         overlaySwitch = findViewById(R.id.overlaySwitch)
         recordSwitch = findViewById(R.id.recordSwitch)
@@ -78,19 +81,18 @@ class MainActivity : AppCompatActivity() {
 
         Shizuku.addRequestPermissionResultListener(permissionListener)
 
-        turboSwitch.setOnCheckedChangeListener { _, checked ->
-            if (checked) {
+        turboDial.setOnClickListener {
+            if (!turboActive) {
                 if (!ShizukuManager.isShizukuRunning()) {
-                    setSwitchSilently(turboSwitch, false)
                     Toast.makeText(this, "Shizuku no está corriendo. Ábrelo primero.", Toast.LENGTH_LONG).show()
-                    return@setOnCheckedChangeListener
+                    return@setOnClickListener
                 }
                 if (!ShizukuManager.hasPermission()) {
-                    setSwitchSilently(turboSwitch, false)
                     ShizukuManager.requestPermission()
-                    return@setOnCheckedChangeListener
+                    return@setOnClickListener
                 }
                 turboActive = true
+                turboDial.setTextColor(accentRed)
                 Thread {
                     PerformanceBooster.killBackgroundProcesses()
                     PerformanceBooster.setHighPerformanceMode()
@@ -103,7 +105,9 @@ class MainActivity : AppCompatActivity() {
                 }.start()
             } else {
                 turboActive = false
+                turboDial.setTextColor(Color.WHITE)
                 updateStatus()
+                Toast.makeText(this, "Modo Turbo desactivado", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -137,7 +141,7 @@ class MainActivity : AppCompatActivity() {
 
         floatingAppRow.setOnClickListener {
             if (!ShizukuManager.hasPermission()) {
-                Toast.makeText(this, "Primero activa el switch de Modo Turbo", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Primero activa el dial de Turbo", Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
             showAppPickerDialog()
@@ -197,7 +201,7 @@ class MainActivity : AppCompatActivity() {
             ACTION_START_RECORDING -> if (!recordSwitch.isChecked) recordSwitch.isChecked = true
             ACTION_PICK_FLOATING_APP -> {
                 if (ShizukuManager.hasPermission()) showAppPickerDialog()
-                else Toast.makeText(this, "Primero activa el switch de Modo Turbo", Toast.LENGTH_LONG).show()
+                else Toast.makeText(this, "Primero activa el dial de Turbo", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -206,7 +210,6 @@ class MainActivity : AppCompatActivity() {
         switch.setOnCheckedChangeListener(null)
         switch.isChecked = checked
         when (switch) {
-            turboSwitch -> switch.setOnCheckedChangeListener { _, c -> if (!c) { turboActive = false; updateStatus() } }
             dndSwitch -> switch.setOnCheckedChangeListener { _, c ->
                 if (c) DoNotDisturbController.enable(this) else DoNotDisturbController.disable(this)
                 updateStatus()

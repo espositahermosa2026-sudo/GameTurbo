@@ -42,34 +42,24 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="60dp"
+            android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="@drawable/bg_card_button"
-            android:paddingStart="18dp"
-            android:paddingEnd="14dp"
-            android:layout_marginBottom="10dp">
+            android:gravity="center"
+            android:layout_marginBottom="18dp">
 
             <TextView
-                android:layout_width="28dp"
-                android:layout_height="wrap_content"
-                android:text="⚡"
-                android:textSize="18sp" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Modo Turbo"
+                android:id="@+id/turboDial"
+                android:layout_width="150dp"
+                android:layout_height="150dp"
+                android:background="@drawable/bg_turbo_dial"
+                android:gravity="center"
+                android:text="⚡\nTURBO"
                 android:textColor="@color/gt_text_primary"
-                android:textSize="14sp" />
-
-            <Switch
-                android:id="@+id/turboSwitch"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:thumbTint="@color/switch_thumb_color"
-                android:trackTint="@color/switch_track_color" />
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                android:clickable="true"
+                android:focusable="true" />
         </LinearLayout>
 
         <LinearLayout

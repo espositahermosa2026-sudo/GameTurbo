@@ -9,6 +9,31 @@ object SystemStats {
     private var lastTotal: Long = -1
     private var lastIdle: Long = -1
 
+    fun readBatteryPercent(context: Context): Int? {
+        return try {
+            val bm = context.getSystemService(Context.BATTERY_SERVICE) as android.os.BatteryManager
+            val level = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            if (level in 0..100) level else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun readWifiStatus(context: Context): String {
+        return try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+            val network = cm.activeNetwork ?: return "Sin red"
+            val caps = cm.getNetworkCapabilities(network) ?: return "Sin red"
+            when {
+                caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) -> "WiFi"
+                caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) -> "Datos"
+                else -> "Sin red"
+            }
+        } catch (e: Exception) {
+            "N/D"
+        }
+    }
+
     fun readRamUsageGb(context: Context): Pair<Float, Float> {
         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val info = ActivityManager.MemoryInfo()
