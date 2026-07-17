@@ -123,7 +123,7 @@ class OverlayService : Service() {
         return Pair(block, value)
     }
 
-    private fun circularButton(icon: String, label: String, onClick: () -> Unit): Pair<LinearLayout, TextView> {
+    private fun circularButton(icon: String, label: String): Pair<LinearLayout, TextView> {
         val wrapper = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
@@ -135,7 +135,6 @@ class OverlayService : Service() {
             gravity = Gravity.CENTER
             background = getDrawable(R.drawable.bg_overlay_circle)
             layoutParams = LinearLayout.LayoutParams(circleSize, circleSize)
-            setOnClickListener { onClick() }
         }
         val lbl = TextView(this).apply {
             text = label
@@ -203,7 +202,8 @@ class OverlayService : Service() {
             setPadding(0, 16, 0, 0)
         }
 
-        val (turboWrap, turboIcon) = circularButton("⚡", "TURBO") {
+        val (turboWrap, turboIcon) = circularButton("⚡", "TURBO")
+        turboIcon.setOnClickListener {
             turboOn = !turboOn
             turboIcon.setTextColor(if (turboOn) accentRed else Color.WHITE)
             if (turboOn && ShizukuManager.hasPermission()) {
@@ -213,25 +213,33 @@ class OverlayService : Service() {
                 }.start()
             }
         }
-        val (dndWrap, dndIcon) = circularButton("🔕", "DND") {
+
+        val (dndWrap, dndIcon) = circularButton("🔕", "DND")
+        dndIcon.setOnClickListener {
             dndOn = !dndOn
             dndIcon.setTextColor(if (dndOn) accentRed else Color.WHITE)
             if (dndOn) DoNotDisturbController.enable(this@OverlayService)
             else DoNotDisturbController.disable(this@OverlayService)
         }
-        val (winWrap, _) = circularButton("🪟", "VENTANA") {
+
+        val (winWrap, winIcon) = circularButton("🪟", "VENTANA")
+        winIcon.setOnClickListener {
             val i = Intent(this@OverlayService, MainActivity::class.java)
             i.action = MainActivity.ACTION_PICK_FLOATING_APP
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(i)
         }
-        val (recWrap, _) = circularButton("⏺", "GRABAR") {
+
+        val (recWrap, recIcon) = circularButton("⏺", "GRABAR")
+        recIcon.setOnClickListener {
             val i = Intent(this@OverlayService, MainActivity::class.java)
             i.action = MainActivity.ACTION_START_RECORDING
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(i)
         }
-        val (closeWrap, _) = circularButton("✕", "CERRAR") { stopSelf() }
+
+        val (closeWrap, closeIcon) = circularButton("✕", "CERRAR")
+        closeIcon.setOnClickListener { stopSelf() }
 
         val btnParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         buttonsRow.addView(turboWrap, btnParams)
