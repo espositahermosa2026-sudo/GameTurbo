@@ -92,6 +92,7 @@ class MainActivity : AppCompatActivity() {
                     return@setOnClickListener
                 }
                 turboActive = true
+                turboDial.setBackgroundResource(R.drawable.bg_turbo_dial)
                 turboDial.setTextColor(accentRed)
                 Thread {
                     PerformanceBooster.killBackgroundProcesses()
@@ -161,6 +162,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         autoDetectSwitch.setOnCheckedChangeListener { _, checked ->
+            val prefs = getSharedPreferences("gameturbo_prefs", MODE_PRIVATE)
             if (checked) {
                 if (!UsageAccessHelper.hasUsageAccess(this)) {
                     setSwitchSilently(autoDetectSwitch, false)
@@ -179,12 +181,16 @@ class MainActivity : AppCompatActivity() {
                     startService(Intent(this, AutoDetectService::class.java))
                 }
                 autoDetectActive = true
-                Toast.makeText(this, "Se activará solo al abrir un juego", Toast.LENGTH_LONG).show()
+                prefs.edit().putBoolean("auto_detect_enabled", true).apply()
+                Toast.makeText(this, "Quedará detectando juegos automáticamente, incluso si reinicias el celular", Toast.LENGTH_LONG).show()
             } else {
                 stopService(Intent(this, AutoDetectService::class.java))
                 autoDetectActive = false
+                prefs.edit().putBoolean("auto_detect_enabled", false).apply()
             }
         }
+
+        restoreAutoDetectIfEnabled()
 
         updateStatus()
         handleIntentAction(intent)
@@ -219,6 +225,30 @@ class MainActivity : AppCompatActivity() {
                     stopService(Intent(this, ScreenRecordService::class.java))
                     updateStatus()
                 }
+            }
+        }
+    }
+
+    private fun restoreAutoDetectIfEnabled() {
+        val prefs = getSharedPreferences("gameturbo_prefs", MODE_PRIVATE)
+        val wasEnabled = prefs.getBoolean("auto_detect_enabled", false)
+        if (wasEnabled && UsageAccessHelper.hasUsageAccess(this) &&
+            (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this))
+        ) {
+            autoDetectActive = true
+            setSwitchSilentlyChecked(autoDetectSwitch, true)
+        }
+    }
+
+    private fun setSwitchSilentlyChecked(switch: Switch, checked: Boolean) {
+        switch.setOnCheckedChangeListener(null)
+        switch.isChecked = checked
+        switch.setOnCheckedChangeListener { _, c ->
+            val prefs = getSharedPreferences("gameturbo_prefs", MODE_PRIVATE)
+            if (!c) {
+                stopService(Intent(this, AutoDetectService::class.java))
+                autoDetectActive = false
+                prefs.edit().putBoolean("auto_detect_enabled", false).apply()
             }
         }
     }
