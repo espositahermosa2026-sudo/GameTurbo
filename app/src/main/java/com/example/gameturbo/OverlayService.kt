@@ -16,6 +16,7 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
@@ -24,7 +25,9 @@ import java.io.File
 class OverlayService : Service() {
 
     private lateinit var windowManager: WindowManager
-    private lateinit var overlayView: View
+    private lateinit var rootView: FrameLayout
+    private lateinit var collapsedTab: TextView
+    private lateinit var expandedPanel: LinearLayout
     private lateinit var fpsValueText: TextView
     private lateinit var cpuValueText: TextView
     private lateinit var tempValueText: TextView
@@ -32,6 +35,7 @@ class OverlayService : Service() {
     private lateinit var battValueText: TextView
     private lateinit var wifiValueText: TextView
     private lateinit var sparkline: SparklineView
+    private lateinit var params: WindowManager.LayoutParams
 
     private val handler = Handler(Looper.getMainLooper())
     private var frameCount = 0
@@ -39,8 +43,10 @@ class OverlayService : Service() {
     private var lastFps = 0
     private var turboOn = false
     private var dndOn = false
+    private var isExpanded = false
 
-    private val accentRed = Color.parseColor("#FF3B30")
+    private val accentCyan = Color.parseColor("#00E5FF")
+    private val accentMagenta = Color.parseColor("#FF2D95")
     private val accentGreen = Color.parseColor("#30D158")
     private val textSecondary = Color.parseColor("#8C8C96")
 
@@ -152,12 +158,41 @@ class OverlayService : Service() {
         return Pair(wrapper, iconText)
     }
 
+    private fun expand() {
+        collapsedTab.visibility = View.GONE
+        expandedPanel.visibility = View.VISIBLE
+        isExpanded = true
+        windowManager.updateViewLayout(rootView, params)
+    }
+
+    private fun collapse() {
+        expandedPanel.visibility = View.GONE
+        collapsedTab.visibility = View.VISIBLE
+        isExpanded = false
+        windowManager.updateViewLayout(rootView, params)
+    }
+
     private fun buildOverlayView() {
+        rootView = FrameLayout(this)
+
+        collapsedTab = TextView(this).apply {
+            text = "⚡"
+            textSize = 18f
+            setTextColor(accentCyan)
+            gravity = Gravity.CENTER
+            background = getDrawable(R.drawable.bg_collapsed_tab)
+            layoutParams = FrameLayout.LayoutParams(90, 90)
+            visibility = View.VISIBLE
+            setOnClickListener { expand() }
+        }
+
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24, 18, 24, 18)
             background = getDrawable(R.drawable.bg_overlay_panel)
+            visibility = View.GONE
         }
+        expandedPanel = panel
 
         val headerRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -165,7 +200,7 @@ class OverlayService : Service() {
         }
         val headerTitle = TextView(this).apply {
             text = "🛡 TURBO HUD"
-            setTextColor(accentRed)
+            setTextColor(accentCyan)
             textSize = 12f
             setTypeface(Typeface.DEFAULT_BOLD)
             letterSpacing = 0.05f
@@ -175,8 +210,21 @@ class OverlayService : Service() {
             setTextColor(accentGreen)
             textSize = 10f
         }
+        val minimizeBtn = TextView(this).apply {
+            text = "—"
+            setTextColor(accentMagenta)
+            textSize = 16f
+            setTypeface(Typeface.DEFAULT_BOLD)
+            setPadding(24, 0, 0, 0)
+            setOnClickListener { collapse() }
+        }
+        val headerSpacer = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
         headerRow.addView(headerTitle)
         headerRow.addView(headerStatus)
+        headerRow.addView(headerSpacer)
+        headerRow.addView(minimizeBtn)
 
         val statsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -220,7 +268,7 @@ class OverlayService : Service() {
         val (turboWrap, turboIcon) = circularButton("⚡", "TURBO")
         turboIcon.setOnClickListener {
             turboOn = !turboOn
-            turboIcon.setTextColor(if (turboOn) accentRed else Color.WHITE)
+            turboIcon.setTextColor(if (turboOn) accentMagenta else Color.WHITE)
             if (turboOn && ShizukuManager.hasPermission()) {
                 Thread {
                     PerformanceBooster.killBackgroundProcesses()
@@ -232,7 +280,7 @@ class OverlayService : Service() {
         val (dndWrap, dndIcon) = circularButton("🔕", "DND")
         dndIcon.setOnClickListener {
             dndOn = !dndOn
-            dndIcon.setTextColor(if (dndOn) accentRed else Color.WHITE)
+            dndIcon.setTextColor(if (dndOn) accentMagenta else Color.WHITE)
             if (dndOn) DoNotDisturbController.enable(this@OverlayService)
             else DoNotDisturbController.disable(this@OverlayService)
         }
@@ -269,15 +317,16 @@ class OverlayService : Service() {
         panel.addView(sparkline)
         panel.addView(buttonsRow)
 
-        overlayView = panel
+        rootView.addView(collapsedTab)
+        rootView.addView(expandedPanel)
 
         val overlayType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         else
             @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
 
-        val params = WindowManager.LayoutParams(
-            720,
+        params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             overlayType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -292,7 +341,7 @@ class OverlayService : Service() {
         var initialY = 0
         var touchX = 0f
         var touchY = 0f
-        headerRow.setOnTouchListener { _, event ->
+        val dragListener = View.OnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     initialX = params.x
@@ -304,14 +353,20 @@ class OverlayService : Service() {
                 MotionEvent.ACTION_MOVE -> {
                     params.x = initialX + (event.rawX - touchX).toInt()
                     params.y = initialY + (event.rawY - touchY).toInt()
-                    windowManager.updateViewLayout(overlayView, params)
+                    windowManager.updateViewLayout(rootView, params)
                     true
                 }
                 else -> false
             }
         }
+        collapsedTab.setOnTouchListener { v, event ->
+            dragListener.onTouch(v, event)
+            if (event.action == MotionEvent.ACTION_UP) v.performClick()
+            true
+        }
+        headerRow.setOnTouchListener(dragListener)
 
-        windowManager.addView(overlayView, params)
+        windowManager.addView(rootView, params)
     }
 
     private fun readCpuTemperature(): String {
@@ -334,9 +389,9 @@ class OverlayService : Service() {
         super.onDestroy()
         Choreographer.getInstance().removeFrameCallback(frameCallback)
         handler.removeCallbacksAndMessages(null)
-        if (::overlayView.isInitialized) {
+        if (::rootView.isInitialized) {
             try {
-                windowManager.removeView(overlayView)
+                windowManager.removeView(rootView)
             } catch (e: Exception) {
             }
         }
