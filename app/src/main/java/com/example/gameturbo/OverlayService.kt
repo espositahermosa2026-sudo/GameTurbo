@@ -239,11 +239,11 @@ class OverlayService : Service() {
         tempValueText = tempValue
         ramValueText = ramValue
 
-        val statParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        statsRow.addView(fpsBlock, statParams)
-        statsRow.addView(cpuBlock, statParams)
-        statsRow.addView(tempBlock, statParams)
-        statsRow.addView(ramBlock, statParams)
+        fun statMargin() = LinearLayout.LayoutParams(150, LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginEnd = 8 }
+        statsRow.addView(fpsBlock, statMargin())
+        statsRow.addView(cpuBlock, statMargin())
+        statsRow.addView(tempBlock, statMargin())
+        statsRow.addView(ramBlock, statMargin())
 
         val statsRow2 = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -253,11 +253,11 @@ class OverlayService : Service() {
         val (wifiBlock, wifiValue) = statBlock("WIFI", "--")
         battValueText = battValue
         wifiValueText = wifiValue
-        statsRow2.addView(battBlock, statParams)
-        statsRow2.addView(wifiBlock, statParams)
+        statsRow2.addView(battBlock, statMargin())
+        statsRow2.addView(wifiBlock, statMargin())
 
         sparkline = SparklineView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 140)
+            layoutParams = LinearLayout.LayoutParams(600, 140)
         }
 
         val buttonsRow = LinearLayout(this).apply {
@@ -304,12 +304,12 @@ class OverlayService : Service() {
         val (closeWrap, closeIcon) = circularButton("✕", "CERRAR")
         closeIcon.setOnClickListener { stopSelf() }
 
-        val btnParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        buttonsRow.addView(turboWrap, btnParams)
-        buttonsRow.addView(dndWrap, btnParams)
-        buttonsRow.addView(winWrap, btnParams)
-        buttonsRow.addView(recWrap, btnParams)
-        buttonsRow.addView(closeWrap, btnParams)
+        fun btnMargin() = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginEnd = 12 }
+        buttonsRow.addView(turboWrap, btnMargin())
+        buttonsRow.addView(dndWrap, btnMargin())
+        buttonsRow.addView(winWrap, btnMargin())
+        buttonsRow.addView(recWrap, btnMargin())
+        buttonsRow.addView(closeWrap)
 
         panel.addView(headerRow)
         panel.addView(statsRow)
