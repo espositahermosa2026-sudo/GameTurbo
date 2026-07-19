@@ -16,7 +16,6 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
@@ -25,9 +24,15 @@ import java.io.File
 class OverlayService : Service() {
 
     private lateinit var windowManager: WindowManager
-    private lateinit var rootView: FrameLayout
-    private lateinit var collapsedTab: TextView
-    private lateinit var expandedPanel: LinearLayout
+
+    private lateinit var collapsedView: TextView
+    private lateinit var collapsedParams: WindowManager.LayoutParams
+    private var collapsedAdded = false
+
+    private lateinit var expandedView: LinearLayout
+    private lateinit var expandedParams: WindowManager.LayoutParams
+    private var expandedAdded = false
+
     private lateinit var fpsValueText: TextView
     private lateinit var cpuValueText: TextView
     private lateinit var tempValueText: TextView
@@ -35,7 +40,6 @@ class OverlayService : Service() {
     private lateinit var battValueText: TextView
     private lateinit var wifiValueText: TextView
     private lateinit var sparkline: SparklineView
-    private lateinit var params: WindowManager.LayoutParams
 
     private val handler = Handler(Looper.getMainLooper())
     private var frameCount = 0
@@ -43,7 +47,9 @@ class OverlayService : Service() {
     private var lastFps = 0
     private var turboOn = false
     private var dndOn = false
-    private var isExpanded = false
+
+    private var lastX = 0
+    private var lastY = 100
 
     private val accentCyan = Color.parseColor("#00E5FF")
     private val accentMagenta = Color.parseColor("#FF2D95")
@@ -87,7 +93,9 @@ class OverlayService : Service() {
         super.onCreate()
         startForegroundNotification()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-        buildOverlayView()
+        buildCollapsedView()
+        buildExpandedView()
+        showCollapsed()
         Choreographer.getInstance().postFrameCallback(frameCallback)
         handler.post(statsUpdater)
     }
@@ -108,6 +116,71 @@ class OverlayService : Service() {
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .build()
         startForeground(1, notification)
+    }
+
+    private fun overlayType() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+    else
+        @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
+
+    private fun newParams(): WindowManager.LayoutParams {
+        val p = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            overlayType(),
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT
+        )
+        p.gravity = Gravity.TOP or Gravity.START
+        p.x = lastX
+        p.y = lastY
+        return p
+    }
+
+    private fun makeDragListener(paramsProvider: () -> WindowManager.LayoutParams, view: View): View.OnTouchListener {
+        var initialX = 0
+        var initialY = 0
+        var touchX = 0f
+        var touchY = 0f
+        return View.OnTouchListener { v, event ->
+            val params = paramsProvider()
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    initialX = params.x
+                    initialY = params.y
+                    touchX = event.rawX
+                    touchY = event.rawY
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    params.x = initialX + (event.rawX - touchX).toInt()
+                    params.y = initialY + (event.rawY - touchY).toInt()
+                    lastX = params.x
+                    lastY = params.y
+                    windowManager.updateViewLayout(view, params)
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    v.performClick()
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun buildCollapsedView() {
+        collapsedView = TextView(this).apply {
+            text = "⚡"
+            textSize = 18f
+            setTextColor(accentCyan)
+            gravity = Gravity.CENTER
+            background = getDrawable(R.drawable.bg_collapsed_tab)
+        }
+        collapsedParams = newParams()
+        collapsedView.setOnTouchListener(makeDragListener({ collapsedParams }, collapsedView))
+        collapsedView.setOnClickListener { showExpanded() }
     }
 
     private fun statBlock(label: String, initialValue: String): Pair<LinearLayout, TextView> {
@@ -158,60 +231,12 @@ class OverlayService : Service() {
         return Pair(wrapper, iconText)
     }
 
-    private fun expand() {
-        collapsedTab.visibility = View.GONE
-        expandedPanel.visibility = View.VISIBLE
-        isExpanded = true
-        windowManager.updateViewLayout(rootView, params)
-        rootView.post {
-            android.widget.Toast.makeText(
-                this,
-                "Panel expandido: " + rootView.width + "x" + rootView.height + "px | hijos: " + expandedPanel.childCount + " | stats: " + fpsValueText.text,
-                android.widget.Toast.LENGTH_LONG
-            ).show()
-        }
-    }
-
-    private fun collapse() {
-        expandedPanel.visibility = View.GONE
-        collapsedTab.visibility = View.VISIBLE
-        isExpanded = false
-        windowManager.updateViewLayout(rootView, params)
-    }
-
-    private fun buildOverlayView() {
-        try {
-            buildOverlayViewInner()
-        } catch (e: Throwable) {
-            android.widget.Toast.makeText(
-                this,
-                "Error al construir el panel: " + e.javaClass.simpleName + ": " + e.message,
-                android.widget.Toast.LENGTH_LONG
-            ).show()
-        }
-    }
-
-    private fun buildOverlayViewInner() {
-        rootView = FrameLayout(this)
-
-        collapsedTab = TextView(this).apply {
-            text = "⚡"
-            textSize = 18f
-            setTextColor(accentCyan)
-            gravity = Gravity.CENTER
-            background = getDrawable(R.drawable.bg_collapsed_tab)
-            layoutParams = FrameLayout.LayoutParams(90, 90)
-            visibility = View.VISIBLE
-            setOnClickListener { expand() }
-        }
-
+    private fun buildExpandedView() {
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24, 18, 24, 18)
             background = getDrawable(R.drawable.bg_overlay_panel)
-            visibility = View.GONE
         }
-        expandedPanel = panel
 
         val headerRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -235,7 +260,7 @@ class OverlayService : Service() {
             textSize = 16f
             setTypeface(Typeface.DEFAULT_BOLD)
             setPadding(24, 0, 0, 0)
-            setOnClickListener { collapse() }
+            setOnClickListener { showCollapsed() }
         }
         val headerSpacer = View(this).apply {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -336,56 +361,35 @@ class OverlayService : Service() {
         panel.addView(sparkline)
         panel.addView(buttonsRow)
 
-        rootView.addView(collapsedTab)
-        rootView.addView(expandedPanel)
+        expandedView = panel
+        expandedParams = newParams()
+        headerRow.setOnTouchListener(makeDragListener({ expandedParams }, expandedView))
+    }
 
-        val overlayType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        else
-            @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
-
-        params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            overlayType,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSLUCENT
-        )
-        params.gravity = Gravity.TOP or Gravity.START
-        params.x = 0
-        params.y = 100
-
-        var initialX = 0
-        var initialY = 0
-        var touchX = 0f
-        var touchY = 0f
-        val dragListener = View.OnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    initialX = params.x
-                    initialY = params.y
-                    touchX = event.rawX
-                    touchY = event.rawY
-                    true
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    params.x = initialX + (event.rawX - touchX).toInt()
-                    params.y = initialY + (event.rawY - touchY).toInt()
-                    windowManager.updateViewLayout(rootView, params)
-                    true
-                }
-                else -> false
-            }
+    private fun showCollapsed() {
+        if (expandedAdded) {
+            try { windowManager.removeView(expandedView) } catch (e: Exception) {}
+            expandedAdded = false
         }
-        collapsedTab.setOnTouchListener { v, event ->
-            dragListener.onTouch(v, event)
-            if (event.action == MotionEvent.ACTION_UP) v.performClick()
-            true
+        if (!collapsedAdded) {
+            collapsedParams.x = lastX
+            collapsedParams.y = lastY
+            windowManager.addView(collapsedView, collapsedParams)
+            collapsedAdded = true
         }
-        headerRow.setOnTouchListener(dragListener)
+    }
 
-        windowManager.addView(rootView, params)
+    private fun showExpanded() {
+        if (collapsedAdded) {
+            try { windowManager.removeView(collapsedView) } catch (e: Exception) {}
+            collapsedAdded = false
+        }
+        if (!expandedAdded) {
+            expandedParams.x = lastX
+            expandedParams.y = lastY
+            windowManager.addView(expandedView, expandedParams)
+            expandedAdded = true
+        }
     }
 
     private fun readCpuTemperature(): String {
@@ -408,11 +412,7 @@ class OverlayService : Service() {
         super.onDestroy()
         Choreographer.getInstance().removeFrameCallback(frameCallback)
         handler.removeCallbacksAndMessages(null)
-        if (::rootView.isInitialized) {
-            try {
-                windowManager.removeView(rootView)
-            } catch (e: Exception) {
-            }
-        }
+        try { if (collapsedAdded) windowManager.removeView(collapsedView) } catch (e: Exception) {}
+        try { if (expandedAdded) windowManager.removeView(expandedView) } catch (e: Exception) {}
     }
 }
