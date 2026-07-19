@@ -163,6 +163,13 @@ class OverlayService : Service() {
         expandedPanel.visibility = View.VISIBLE
         isExpanded = true
         windowManager.updateViewLayout(rootView, params)
+        rootView.post {
+            android.widget.Toast.makeText(
+                this,
+                "Panel expandido: " + rootView.width + "x" + rootView.height + "px | hijos: " + expandedPanel.childCount + " | stats: " + fpsValueText.text,
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
     }
 
     private fun collapse() {
@@ -173,6 +180,18 @@ class OverlayService : Service() {
     }
 
     private fun buildOverlayView() {
+        try {
+            buildOverlayViewInner()
+        } catch (e: Throwable) {
+            android.widget.Toast.makeText(
+                this,
+                "Error al construir el panel: " + e.javaClass.simpleName + ": " + e.message,
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun buildOverlayViewInner() {
         rootView = FrameLayout(this)
 
         collapsedTab = TextView(this).apply {
