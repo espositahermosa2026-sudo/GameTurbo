@@ -232,6 +232,18 @@ class OverlayService : Service() {
     }
 
     private fun buildExpandedView() {
+        try {
+            buildExpandedViewInner()
+        } catch (e: Throwable) {
+            android.widget.Toast.makeText(
+                this,
+                "ERROR panel: ${e.javaClass.simpleName}: ${e.message}",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun buildExpandedViewInner() {
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24, 18, 24, 18)
@@ -389,6 +401,13 @@ class OverlayService : Service() {
             expandedParams.y = lastY
             windowManager.addView(expandedView, expandedParams)
             expandedAdded = true
+            expandedView.post {
+                android.widget.Toast.makeText(
+                    this,
+                    "Panel: ${expandedView.width}x${expandedView.height}px, hijos: ${expandedView.childCount}",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 
