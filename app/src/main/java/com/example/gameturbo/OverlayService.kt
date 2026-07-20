@@ -205,3 +205,214 @@ class OverlayService : Service() {
         block.addView(lbl)
         return Pair(block, value)
     }
+
+    private fun circularButton(icon: String, label: String): Pair<LinearLayout, TextView> {
+        val wrapper = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+        }
+        val circleSize = 88
+        val iconText = TextView(this).apply {
+            text = icon
+            textSize = 16f
+            gravity = Gravity.CENTER
+            background = getDrawable(R.drawable.bg_overlay_circle)
+            layoutParams = LinearLayout.LayoutParams(circleSize, circleSize)
+        }
+        val lbl = TextView(this).apply {
+            text = label
+            setTextColor(textSecondary)
+            textSize = 8f
+            gravity = Gravity.CENTER
+            setPadding(0, 6, 0, 0)
+        }
+        wrapper.addView(iconText)
+        wrapper.addView(lbl)
+        return Pair(wrapper, iconText)
+    }
+
+    private fun buildExpandedView() {
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24, 18, 24, 18)
+            background = getDrawable(R.drawable.bg_overlay_panel)
+        }
+
+        val headerRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val headerTitle = TextView(this).apply {
+            text = "🛡 TURBO HUD"
+            setTextColor(accentCyan)
+            textSize = 12f
+            setTypeface(Typeface.DEFAULT_BOLD)
+            letterSpacing = 0.05f
+        }
+        val headerStatus = TextView(this).apply {
+            text = "  •  ACTIVO"
+            setTextColor(accentGreen)
+            textSize = 10f
+        }
+        val minimizeBtn = TextView(this).apply {
+            text = "—"
+            setTextColor(accentMagenta)
+            textSize = 16f
+            setTypeface(Typeface.DEFAULT_BOLD)
+            setPadding(24, 0, 0, 0)
+            setOnClickListener { showCollapsed() }
+        }
+        val headerSpacer = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        headerRow.addView(headerTitle)
+        headerRow.addView(headerStatus)
+        headerRow.addView(headerSpacer)
+        headerRow.addView(minimizeBtn)
+
+        val statsRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 14, 0, 10)
+        }
+        val (fpsBlock, fpsValue) = statBlock("FPS", "--")
+        val (cpuBlock, cpuValue) = statBlock("CPU", "--")
+        val (tempBlock, tempValue) = statBlock("TEMP", "--")
+        val (ramBlock, ramValue) = statBlock("RAM", "--")
+        fpsValueText = fpsValue
+        cpuValueText = cpuValue
+        tempValueText = tempValue
+        ramValueText = ramValue
+
+        fun statMargin() = LinearLayout.LayoutParams(150, LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginEnd = 8 }
+        statsRow.addView(fpsBlock, statMargin())
+        statsRow.addView(cpuBlock, statMargin())
+        statsRow.addView(tempBlock, statMargin())
+        statsRow.addView(ramBlock, statMargin())
+
+        val statsRow2 = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 0, 0, 10)
+        }
+        val (battBlock, battValue) = statBlock("BATERIA", "--")
+        val (wifiBlock, wifiValue) = statBlock("WIFI", "--")
+        battValueText = battValue
+        wifiValueText = wifiValue
+        statsRow2.addView(battBlock, statMargin())
+        statsRow2.addView(wifiBlock, statMargin())
+
+        sparkline = SparklineView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(600, 140)
+        }
+
+        val buttonsRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 16, 0, 0)
+        }
+
+        val (turboWrap, turboIcon) = circularButton("⚡", "TURBO")
+        turboIcon.setOnClickListener {
+            turboOn = !turboOn
+            turboIcon.setTextColor(if (turboOn) accentMagenta else Color.WHITE)
+            if (turboOn && ShizukuManager.hasPermission()) {
+                Thread {
+                    PerformanceBooster.killBackgroundProcesses()
+                    PerformanceBooster.setHighPerformanceMode()
+                }.start()
+            }
+        }
+
+        val (dndWrap, dndIcon) = circularButton("🔕", "DND")
+        dndIcon.setOnClickListener {
+            dndOn = !dndOn
+            dndIcon.setTextColor(if (dndOn) accentMagenta else Color.WHITE)
+            if (dndOn) DoNotDisturbController.enable(this@OverlayService)
+            else DoNotDisturbController.disable(this@OverlayService)
+        }
+
+        val (winWrap, winIcon) = circularButton("🪟", "VENTANA")
+        winIcon.setOnClickListener {
+            val i = Intent(this@OverlayService, MainActivity::class.java)
+            i.action = MainActivity.ACTION_PICK_FLOATING_APP
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(i)
+        }
+
+        val (recWrap, recIcon) = circularButton("⏺", "GRABAR")
+        recIcon.setOnClickListener {
+            val i = Intent(this@OverlayService, MainActivity::class.java)
+            i.action = MainActivity.ACTION_START_RECORDING
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(i)
+        }
+
+        val (closeWrap, closeIcon) = circularButton("✕", "CERRAR")
+        closeIcon.setOnClickListener { stopSelf() }
+
+        fun btnMargin() = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginEnd = 12 }
+        buttonsRow.addView(turboWrap, btnMargin())
+        buttonsRow.addView(dndWrap, btnMargin())
+        buttonsRow.addView(winWrap, btnMargin())
+        buttonsRow.addView(recWrap, btnMargin())
+        buttonsRow.addView(closeWrap)
+
+        panel.addView(headerRow)
+        panel.addView(statsRow)
+        panel.addView(statsRow2)
+        panel.addView(sparkline)
+        panel.addView(buttonsRow)
+
+        expandedView = panel
+        expandedParams = newParams()
+        headerRow.setOnTouchListener(makeDragListener({ expandedParams }, expandedView))
+    }
+
+    private fun showCollapsed() {
+        if (expandedAdded) {
+            try { windowManager.removeView(expandedView) } catch (e: Exception) {}
+            expandedAdded = false
+        }
+        if (!collapsedAdded) {
+            collapsedParams.x = lastX
+            collapsedParams.y = lastY
+            windowManager.addView(collapsedView, collapsedParams)
+            collapsedAdded = true
+        }
+    }
+
+    private fun showExpanded() {
+        if (collapsedAdded) {
+            try { windowManager.removeView(collapsedView) } catch (e: Exception) {}
+            collapsedAdded = false
+        }
+        if (!expandedAdded) {
+            expandedParams.x = lastX
+            expandedParams.y = lastY
+            windowManager.addView(expandedView, expandedParams)
+            expandedAdded = true
+        }
+    }
+
+    private fun readCpuTemperature(): String {
+        return try {
+            for (i in 0..9) {
+                val f = File("/sys/class/thermal/thermal_zone$i/temp")
+                if (f.exists()) {
+                    val raw = f.readText().trim().toFloatOrNull() ?: continue
+                    val celsius = if (raw > 1000) raw / 1000 else raw
+                    if (celsius in 10f..120f) return "${celsius.toInt()}°"
+                }
+            }
+            "N/D"
+        } catch (e: Exception) {
+            "N/D"
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Choreographer.getInstance().removeFrameCallback(frameCallback)
+        handler.removeCallbacksAndMessages(null)
+        try { if (collapsedAdded) windowManager.removeView(collapsedView) } catch (e: Exception) {}
+        try { if (expandedAdded) windowManager.removeView(expandedView) } catch (e: Exception) {}
+    }
+}
