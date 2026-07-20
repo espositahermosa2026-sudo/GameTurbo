@@ -289,6 +289,7 @@ class OverlayService : Service() {
         val statsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, dp(7), 0, dp(5))
+            setBackgroundColor(Color.parseColor("#FFFF00"))
         }
         val (fpsBlock, fpsValue) = statBlock("FPS", "--")
         val (cpuBlock, cpuValue) = statBlock("CPU", "--")
@@ -308,6 +309,7 @@ class OverlayService : Service() {
         val statsRow2 = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 0, 0, dp(5))
+            setBackgroundColor(Color.parseColor("#00FF00"))
         }
         val (battBlock, battValue) = statBlock("BATERIA", "--")
         val (wifiBlock, wifiValue) = statBlock("WIFI", "--")
@@ -323,6 +325,7 @@ class OverlayService : Service() {
         val buttonsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, dp(8), 0, 0)
+            setBackgroundColor(Color.parseColor("#0000FF"))
         }
 
         val (turboWrap, turboIcon) = circularButton("⚡", "TURBO")
