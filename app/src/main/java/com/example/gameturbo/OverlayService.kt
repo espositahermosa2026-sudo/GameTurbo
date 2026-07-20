@@ -410,6 +410,13 @@ class OverlayService : Service() {
             expandedParams.y = lastY
             windowManager.addView(expandedView, expandedParams)
             expandedAdded = true
+            expandedView.post {
+                android.widget.Toast.makeText(
+                    this,
+                    "Panel: ${expandedView.width}x${expandedView.height}px | statsRow visible: ${expandedView.getChildAt(1)?.visibility} h=${expandedView.getChildAt(1)?.height}",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 
