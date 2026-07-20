@@ -179,6 +179,8 @@ class OverlayService : Service() {
             background = getDrawable(R.drawable.bg_collapsed_tab)
         }
         collapsedParams = newParams()
+        collapsedParams.width = 90
+        collapsedParams.height = 90
         collapsedView.setOnTouchListener(makeDragListener({ collapsedParams }, collapsedView))
         collapsedView.setOnClickListener { showExpanded() }
     }
@@ -375,6 +377,8 @@ class OverlayService : Service() {
 
         expandedView = panel
         expandedParams = newParams()
+        expandedParams.width = 680
+        expandedParams.height = 520
         headerRow.setOnTouchListener(makeDragListener({ expandedParams }, expandedView))
     }
 
@@ -401,13 +405,6 @@ class OverlayService : Service() {
             expandedParams.y = lastY
             windowManager.addView(expandedView, expandedParams)
             expandedAdded = true
-            expandedView.post {
-                android.widget.Toast.makeText(
-                    this,
-                    "Panel: ${expandedView.width}x${expandedView.height}px, hijos: ${expandedView.childCount}",
-                    android.widget.Toast.LENGTH_LONG
-                ).show()
-            }
         }
     }
 
