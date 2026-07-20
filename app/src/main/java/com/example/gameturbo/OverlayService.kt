@@ -410,13 +410,15 @@ class OverlayService : Service() {
             expandedParams.y = lastY
             windowManager.addView(expandedView, expandedParams)
             expandedAdded = true
-            expandedView.post {
+            handler.postDelayed({
+                val statsRow = expandedView.getChildAt(1)
+                val fpsBlock = (statsRow as? LinearLayout)?.getChildAt(0)
                 android.widget.Toast.makeText(
                     this,
-                    "Panel: ${expandedView.width}x${expandedView.height}px | statsRow visible: ${expandedView.getChildAt(1)?.visibility} h=${expandedView.getChildAt(1)?.height}",
+                    "panel=${expandedView.width}x${expandedView.height} statsRow=${statsRow?.width}x${statsRow?.height} fpsBlock=${fpsBlock?.width}x${fpsBlock?.height} texto='${fpsValueText.text}'",
                     android.widget.Toast.LENGTH_LONG
                 ).show()
-            }
+            }, 500)
         }
     }
 
