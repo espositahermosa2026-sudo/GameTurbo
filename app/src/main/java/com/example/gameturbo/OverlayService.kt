@@ -56,6 +56,8 @@ class OverlayService : Service() {
     private val accentGreen = Color.parseColor("#30D158")
     private val textSecondary = Color.parseColor("#8C8C96")
 
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
     private val frameCallback = object : Choreographer.FrameCallback {
         override fun doFrame(frameTimeNanos: Long) {
             frameCount++
@@ -179,8 +181,8 @@ class OverlayService : Service() {
             background = getDrawable(R.drawable.bg_collapsed_tab)
         }
         collapsedParams = newParams()
-        collapsedParams.width = 90
-        collapsedParams.height = 90
+        collapsedParams.width = dp(48)
+        collapsedParams.height = dp(48)
         collapsedView.setOnTouchListener(makeDragListener({ collapsedParams }, collapsedView))
         collapsedView.setOnClickListener { showExpanded() }
     }
@@ -213,7 +215,7 @@ class OverlayService : Service() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
         }
-        val circleSize = 88
+        val circleSize = dp(44)
         val iconText = TextView(this).apply {
             text = icon
             textSize = 16f
@@ -226,7 +228,7 @@ class OverlayService : Service() {
             setTextColor(textSecondary)
             textSize = 8f
             gravity = Gravity.CENTER
-            setPadding(0, 6, 0, 0)
+            setPadding(0, dp(3), 0, 0)
         }
         wrapper.addView(iconText)
         wrapper.addView(lbl)
@@ -248,7 +250,7 @@ class OverlayService : Service() {
     private fun buildExpandedViewInner() {
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(24, 18, 24, 18)
+            setPadding(dp(12), dp(9), dp(12), dp(9))
             background = getDrawable(R.drawable.bg_overlay_panel)
         }
 
@@ -273,7 +275,7 @@ class OverlayService : Service() {
             setTextColor(accentMagenta)
             textSize = 16f
             setTypeface(Typeface.DEFAULT_BOLD)
-            setPadding(24, 0, 0, 0)
+            setPadding(dp(12), 0, 0, 0)
             setOnClickListener { showCollapsed() }
         }
         val headerSpacer = View(this).apply {
@@ -286,7 +288,7 @@ class OverlayService : Service() {
 
         val statsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 14, 0, 10)
+            setPadding(0, dp(7), 0, dp(5))
         }
         val (fpsBlock, fpsValue) = statBlock("FPS", "--")
         val (cpuBlock, cpuValue) = statBlock("CPU", "--")
@@ -297,7 +299,7 @@ class OverlayService : Service() {
         tempValueText = tempValue
         ramValueText = ramValue
 
-        fun statMargin() = LinearLayout.LayoutParams(150, LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginEnd = 8 }
+        fun statMargin() = LinearLayout.LayoutParams(dp(66), LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginEnd = dp(4) }
         statsRow.addView(fpsBlock, statMargin())
         statsRow.addView(cpuBlock, statMargin())
         statsRow.addView(tempBlock, statMargin())
@@ -305,7 +307,7 @@ class OverlayService : Service() {
 
         val statsRow2 = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 0, 0, 10)
+            setPadding(0, 0, 0, dp(5))
         }
         val (battBlock, battValue) = statBlock("BATERIA", "--")
         val (wifiBlock, wifiValue) = statBlock("WIFI", "--")
@@ -315,12 +317,12 @@ class OverlayService : Service() {
         statsRow2.addView(wifiBlock, statMargin())
 
         sparkline = SparklineView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(600, 140)
+            layoutParams = LinearLayout.LayoutParams(dp(220), dp(50))
         }
 
         val buttonsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 16, 0, 0)
+            setPadding(0, dp(8), 0, 0)
         }
 
         val (turboWrap, turboIcon) = circularButton("⚡", "TURBO")
@@ -362,7 +364,7 @@ class OverlayService : Service() {
         val (closeWrap, closeIcon) = circularButton("✕", "CERRAR")
         closeIcon.setOnClickListener { stopSelf() }
 
-        fun btnMargin() = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginEnd = 12 }
+        fun btnMargin() = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginEnd = dp(5) }
         buttonsRow.addView(turboWrap, btnMargin())
         buttonsRow.addView(dndWrap, btnMargin())
         buttonsRow.addView(winWrap, btnMargin())
@@ -377,8 +379,8 @@ class OverlayService : Service() {
 
         expandedView = panel
         expandedParams = newParams()
-        expandedParams.width = 680
-        expandedParams.height = 520
+        expandedParams.width = dp(300)
+        expandedParams.height = dp(260)
         headerRow.setOnTouchListener(makeDragListener({ expandedParams }, expandedView))
     }
 
