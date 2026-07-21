@@ -6,17 +6,16 @@ import android.app.Service
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
-import android.graphics.Typeface
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.view.Choreographer
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
 import java.io.File
@@ -29,7 +28,7 @@ class OverlayService : Service() {
     private lateinit var collapsedParams: WindowManager.LayoutParams
     private var collapsedAdded = false
 
-    private lateinit var expandedView: LinearLayout
+    private lateinit var expandedView: View
     private lateinit var expandedParams: WindowManager.LayoutParams
     private var expandedAdded = false
 
@@ -53,8 +52,6 @@ class OverlayService : Service() {
 
     private val accentCyan = Color.parseColor("#00E5FF")
     private val accentMagenta = Color.parseColor("#FF2D95")
-    private val accentGreen = Color.parseColor("#30D158")
-    private val textSecondary = Color.parseColor("#8C8C96")
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
@@ -187,148 +184,24 @@ class OverlayService : Service() {
         collapsedView.setOnClickListener { showExpanded() }
     }
 
-    private fun statBlock(label: String, initialValue: String): Pair<LinearLayout, TextView> {
-        val block = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-        }
-        val value = TextView(this).apply {
-            text = initialValue
-            setTextColor(Color.WHITE)
-            textSize = 15f
-            setTypeface(Typeface.DEFAULT_BOLD)
-            gravity = Gravity.CENTER
-        }
-        val lbl = TextView(this).apply {
-            text = label
-            setTextColor(textSecondary)
-            textSize = 9f
-            gravity = Gravity.CENTER
-        }
-        block.addView(value)
-        block.addView(lbl)
-        return Pair(block, value)
-    }
-
-    private fun circularButton(icon: String, label: String): Pair<LinearLayout, TextView> {
-        val wrapper = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-        }
-        val circleSize = dp(44)
-        val iconText = TextView(this).apply {
-            text = icon
-            textSize = 16f
-            gravity = Gravity.CENTER
-            background = getDrawable(R.drawable.bg_overlay_circle)
-            layoutParams = LinearLayout.LayoutParams(circleSize, circleSize)
-        }
-        val lbl = TextView(this).apply {
-            text = label
-            setTextColor(textSecondary)
-            textSize = 8f
-            gravity = Gravity.CENTER
-            setPadding(0, dp(3), 0, 0)
-        }
-        wrapper.addView(iconText)
-        wrapper.addView(lbl)
-        return Pair(wrapper, iconText)
-    }
-
     private fun buildExpandedView() {
-        try {
-            buildExpandedViewInner()
-        } catch (e: Throwable) {
-            android.widget.Toast.makeText(
-                this,
-                "ERROR panel: ${e.javaClass.simpleName}: ${e.message}",
-                android.widget.Toast.LENGTH_LONG
-            ).show()
-        }
-    }
+        val inflater = LayoutInflater.from(this)
+        val view = inflater.inflate(R.layout.overlay_expanded, null)
+        expandedView = view
 
-    private fun buildExpandedViewInner() {
-        val panel = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(12), dp(9), dp(12), dp(9))
-            background = getDrawable(R.drawable.bg_overlay_panel)
-        }
+        fpsValueText = view.findViewById(R.id.fpsValue)
+        cpuValueText = view.findViewById(R.id.cpuValue)
+        tempValueText = view.findViewById(R.id.tempValue)
+        ramValueText = view.findViewById(R.id.ramValue)
+        battValueText = view.findViewById(R.id.battValue)
+        wifiValueText = view.findViewById(R.id.wifiValue)
+        sparkline = view.findViewById(R.id.sparkline)
 
-        val headerRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        val headerTitle = TextView(this).apply {
-            text = "🛡 TURBO HUD"
-            setTextColor(accentCyan)
-            textSize = 12f
-            setTypeface(Typeface.DEFAULT_BOLD)
-            letterSpacing = 0.05f
-        }
-        val headerStatus = TextView(this).apply {
-            text = "  •  ACTIVO"
-            setTextColor(accentGreen)
-            textSize = 10f
-        }
-        val minimizeBtn = TextView(this).apply {
-            text = "—"
-            setTextColor(accentMagenta)
-            textSize = 16f
-            setTypeface(Typeface.DEFAULT_BOLD)
-            setPadding(dp(12), 0, 0, 0)
-            setOnClickListener { showCollapsed() }
-        }
-        val headerSpacer = View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        }
-        headerRow.addView(headerTitle)
-        headerRow.addView(headerStatus)
-        headerRow.addView(headerSpacer)
-        headerRow.addView(minimizeBtn)
+        val headerRow: View = view.findViewById(R.id.headerRow)
+        val minimizeBtn: TextView = view.findViewById(R.id.minimizeBtn)
+        minimizeBtn.setOnClickListener { showCollapsed() }
 
-        val statsRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(0, dp(7), 0, dp(5))
-            setBackgroundColor(Color.parseColor("#FFFF00"))
-        }
-        val (fpsBlock, fpsValue) = statBlock("FPS", "--")
-        val (cpuBlock, cpuValue) = statBlock("CPU", "--")
-        val (tempBlock, tempValue) = statBlock("TEMP", "--")
-        val (ramBlock, ramValue) = statBlock("RAM", "--")
-        fpsValueText = fpsValue
-        cpuValueText = cpuValue
-        tempValueText = tempValue
-        ramValueText = ramValue
-
-        fun statMargin() = LinearLayout.LayoutParams(dp(66), LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginEnd = dp(4) }
-        statsRow.addView(fpsBlock, statMargin())
-        statsRow.addView(cpuBlock, statMargin())
-        statsRow.addView(tempBlock, statMargin())
-        statsRow.addView(ramBlock, statMargin())
-
-        val statsRow2 = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 0, 0, dp(5))
-            setBackgroundColor(Color.parseColor("#00FF00"))
-        }
-        val (battBlock, battValue) = statBlock("BATERIA", "--")
-        val (wifiBlock, wifiValue) = statBlock("WIFI", "--")
-        battValueText = battValue
-        wifiValueText = wifiValue
-        statsRow2.addView(battBlock, statMargin())
-        statsRow2.addView(wifiBlock, statMargin())
-
-        sparkline = SparklineView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(dp(220), dp(50))
-        }
-
-        val buttonsRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(0, dp(8), 0, 0)
-            setBackgroundColor(Color.parseColor("#0000FF"))
-        }
-
-        val (turboWrap, turboIcon) = circularButton("⚡", "TURBO")
+        val turboIcon: TextView = view.findViewById(R.id.turboIcon)
         turboIcon.setOnClickListener {
             turboOn = !turboOn
             turboIcon.setTextColor(if (turboOn) accentMagenta else Color.WHITE)
@@ -340,7 +213,7 @@ class OverlayService : Service() {
             }
         }
 
-        val (dndWrap, dndIcon) = circularButton("🔕", "DND")
+        val dndIcon: TextView = view.findViewById(R.id.dndIcon)
         dndIcon.setOnClickListener {
             dndOn = !dndOn
             dndIcon.setTextColor(if (dndOn) accentMagenta else Color.WHITE)
@@ -348,7 +221,7 @@ class OverlayService : Service() {
             else DoNotDisturbController.disable(this@OverlayService)
         }
 
-        val (winWrap, winIcon) = circularButton("🪟", "VENTANA")
+        val winIcon: TextView = view.findViewById(R.id.winIcon)
         winIcon.setOnClickListener {
             val i = Intent(this@OverlayService, MainActivity::class.java)
             i.action = MainActivity.ACTION_PICK_FLOATING_APP
@@ -356,7 +229,7 @@ class OverlayService : Service() {
             startActivity(i)
         }
 
-        val (recWrap, recIcon) = circularButton("⏺", "GRABAR")
+        val recIcon: TextView = view.findViewById(R.id.recIcon)
         recIcon.setOnClickListener {
             val i = Intent(this@OverlayService, MainActivity::class.java)
             i.action = MainActivity.ACTION_START_RECORDING
@@ -364,29 +237,10 @@ class OverlayService : Service() {
             startActivity(i)
         }
 
-        val (closeWrap, closeIcon) = circularButton("✕", "CERRAR")
+        val closeIcon: TextView = view.findViewById(R.id.closeIcon)
         closeIcon.setOnClickListener { stopSelf() }
 
-        fun btnMargin() = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginEnd = dp(5) }
-        buttonsRow.addView(turboWrap, btnMargin())
-        buttonsRow.addView(dndWrap, btnMargin())
-        buttonsRow.addView(winWrap, btnMargin())
-        buttonsRow.addView(recWrap, btnMargin())
-        buttonsRow.addView(closeWrap)
-
-        panel.addView(headerRow)
-        panel.addView(statsRow)
-        panel.addView(statsRow2)
-        panel.addView(sparkline)
-        panel.addView(buttonsRow)
-
-        expandedView = panel
         expandedParams = newParams()
-        val widthSpec = View.MeasureSpec.makeMeasureSpec(dp(300), View.MeasureSpec.EXACTLY)
-        val heightSpec = View.MeasureSpec.makeMeasureSpec(dp(1200), View.MeasureSpec.AT_MOST)
-        panel.measure(widthSpec, heightSpec)
-        expandedParams.width = dp(300)
-        expandedParams.height = panel.measuredHeight.coerceAtLeast(dp(200))
         headerRow.setOnTouchListener(makeDragListener({ expandedParams }, expandedView))
     }
 
@@ -413,15 +267,6 @@ class OverlayService : Service() {
             expandedParams.y = lastY
             windowManager.addView(expandedView, expandedParams)
             expandedAdded = true
-            handler.postDelayed({
-                val statsRow = expandedView.getChildAt(1)
-                val fpsBlock = (statsRow as? LinearLayout)?.getChildAt(0)
-                android.widget.Toast.makeText(
-                    this,
-                    "panel=${expandedView.width}x${expandedView.height} statsRow=${statsRow?.width}x${statsRow?.height} fpsBlock=${fpsBlock?.width}x${fpsBlock?.height} texto='${fpsValueText.text}'",
-                    android.widget.Toast.LENGTH_LONG
-                ).show()
-            }, 500)
         }
     }
 
