@@ -382,8 +382,11 @@ class OverlayService : Service() {
 
         expandedView = panel
         expandedParams = newParams()
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(dp(300), View.MeasureSpec.EXACTLY)
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(dp(1200), View.MeasureSpec.AT_MOST)
+        panel.measure(widthSpec, heightSpec)
         expandedParams.width = dp(300)
-        expandedParams.height = dp(260)
+        expandedParams.height = panel.measuredHeight.coerceAtLeast(dp(200))
         headerRow.setOnTouchListener(makeDragListener({ expandedParams }, expandedView))
     }
 
