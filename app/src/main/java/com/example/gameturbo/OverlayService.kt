@@ -241,6 +241,11 @@ class OverlayService : Service() {
         closeIcon.setOnClickListener { stopSelf() }
 
         expandedParams = newParams()
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(dp(300), View.MeasureSpec.EXACTLY)
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(dp(1200), View.MeasureSpec.AT_MOST)
+        view.measure(widthSpec, heightSpec)
+        expandedParams.width = dp(300)
+        expandedParams.height = view.measuredHeight.coerceAtLeast(dp(150))
         headerRow.setOnTouchListener(makeDragListener({ expandedParams }, expandedView))
     }
 
@@ -267,6 +272,13 @@ class OverlayService : Service() {
             expandedParams.y = lastY
             windowManager.addView(expandedView, expandedParams)
             expandedAdded = true
+            handler.postDelayed({
+                android.widget.Toast.makeText(
+                    this,
+                    "ventana=${expandedParams.width}x${expandedParams.height} real=${expandedView.width}x${expandedView.height} fps='${fpsValueText.text}'",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            }, 300)
         }
     }
 
