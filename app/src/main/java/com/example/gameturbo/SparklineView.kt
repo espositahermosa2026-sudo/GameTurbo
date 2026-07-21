@@ -5,10 +5,14 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.util.AttributeSet
 import android.view.View
 import java.util.LinkedList
 
-class SparklineView(context: Context) : View(context) {
+class SparklineView @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null
+) : View(context, attrs) {
 
     private val history = LinkedList<Float>()
     private val maxSamples = 30
