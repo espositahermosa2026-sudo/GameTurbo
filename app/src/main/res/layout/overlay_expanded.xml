@@ -18,7 +18,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🛡 TURBO HUD"
+            android:text="🛡 PRUEBA V2"
             android:textColor="#00E5FF"
             android:textSize="12sp"
             android:textStyle="bold" />
