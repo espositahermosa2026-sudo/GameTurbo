@@ -269,9 +269,17 @@ class OverlayService : Service() {
             expandedAdded = true
             handler.postDelayed({
                 val root = expandedView as? android.view.ViewGroup
-                val lastChild = root?.getChildAt(root.childCount - 1)
+                val heights = (0 until (root?.childCount ?: 0)).joinToString(",") { i ->
+                    "${root?.getChildAt(i)?.height}"
+                }
+                android.widget.Toast.makeText(
+                    this,
+                    "alturas de cada fila: $heights | ventana=${expandedParams.width}x${expandedParams.height}",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+                val lastChild = root?.getChildAt((root.childCount) - 1)
                 if (lastChild != null) {
-                    val neededHeight = lastChild.bottom + root.paddingBottom + dp(4)
+                    val neededHeight = lastChild.bottom + (root?.paddingBottom ?: 0) + dp(4)
                     expandedParams.height = neededHeight.coerceIn(dp(150), dp(500))
                     windowManager.updateViewLayout(expandedView, expandedParams)
                 }
