@@ -90,13 +90,21 @@ class OverlayService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        startForegroundNotification()
-        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-        buildCollapsedView()
-        buildExpandedView()
-        showCollapsed()
-        Choreographer.getInstance().postFrameCallback(frameCallback)
-        handler.post(statsUpdater)
+        try {
+            startForegroundNotification()
+            windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+            buildCollapsedView()
+            buildExpandedView()
+            showCollapsed()
+            Choreographer.getInstance().postFrameCallback(frameCallback)
+            handler.post(statsUpdater)
+        } catch (e: Throwable) {
+            android.widget.Toast.makeText(
+                this,
+                "ERROR en OverlayService: ${e.javaClass.simpleName}: ${e.message}",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
     }
 
     private fun startForegroundNotification() {
@@ -296,6 +304,7 @@ class OverlayService : Service() {
     }
 
     override fun onDestroy() {
+        android.widget.Toast.makeText(this, "OverlayService se esta cerrando", android.widget.Toast.LENGTH_LONG).show()
         super.onDestroy()
         Choreographer.getInstance().removeFrameCallback(frameCallback)
         handler.removeCallbacksAndMessages(null)
