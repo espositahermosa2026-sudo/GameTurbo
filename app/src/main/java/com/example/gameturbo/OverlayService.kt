@@ -211,7 +211,7 @@ class OverlayService : Service() {
         val turboIcon: TextView = view.findViewById(R.id.turboIcon)
         turboIcon.setOnClickListener {
             turboOn = !turboOn
-            turboIcon.setTextColor(if (turboOn) accentMagenta else Color.WHITE)
+            turboIcon.setBackgroundResource(if (turboOn) R.drawable.bg_overlay_circle_active else R.drawable.bg_overlay_circle)
             if (turboOn && ShizukuManager.hasPermission()) {
                 Thread {
                     PerformanceBooster.killBackgroundProcesses()
@@ -222,8 +222,12 @@ class OverlayService : Service() {
 
         val dndIcon: TextView = view.findViewById(R.id.dndIcon)
         dndIcon.setOnClickListener {
+            if (!DoNotDisturbController.hasPermission(this@OverlayService)) {
+                android.widget.Toast.makeText(this@OverlayService, "Falta el permiso de No Molestar, actívalo desde la app principal", android.widget.Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
             dndOn = !dndOn
-            dndIcon.setTextColor(if (dndOn) accentMagenta else Color.WHITE)
+            dndIcon.setBackgroundResource(if (dndOn) R.drawable.bg_overlay_circle_active else R.drawable.bg_overlay_circle)
             if (dndOn) DoNotDisturbController.enable(this@OverlayService)
             else DoNotDisturbController.disable(this@OverlayService)
         }
@@ -304,7 +308,6 @@ class OverlayService : Service() {
     }
 
     override fun onDestroy() {
-        android.widget.Toast.makeText(this, "OverlayService se esta cerrando", android.widget.Toast.LENGTH_LONG).show()
         super.onDestroy()
         Choreographer.getInstance().removeFrameCallback(frameCallback)
         handler.removeCallbacksAndMessages(null)

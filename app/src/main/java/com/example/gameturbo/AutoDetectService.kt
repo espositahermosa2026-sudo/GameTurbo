@@ -115,7 +115,6 @@ class AutoDetectService : Service() {
     }
 
     private fun onExitGame() {
-        android.widget.Toast.makeText(this, "Auto-deteccion: salio del juego, apagando panel", android.widget.Toast.LENGTH_LONG).show()
         if (DoNotDisturbController.hasPermission(this)) {
             DoNotDisturbController.disable(this)
         }
