@@ -17,8 +17,8 @@ import androidx.core.app.NotificationCompat
 class AutoDetectService : Service() {
 
     private val handler = Handler(Looper.getMainLooper())
-    private var lastForegroundPackage: String? = null
     private var inGame = false
+    private var nonGameStreak = 0
 
     private val pollRunnable = object : Runnable {
         override fun run() {
@@ -57,17 +57,22 @@ class AutoDetectService : Service() {
     private fun checkForegroundApp() {
         val pkg = getForegroundPackage() ?: return
         if (pkg == packageName) return
-        if (pkg == lastForegroundPackage) return
-        lastForegroundPackage = pkg
 
         val isGame = isGamePackage(pkg)
 
-        if (isGame && !inGame) {
-            inGame = true
-            onEnterGame()
-        } else if (!isGame && inGame) {
-            inGame = false
-            onExitGame()
+        if (isGame) {
+            nonGameStreak = 0
+            if (!inGame) {
+                inGame = true
+                onEnterGame()
+            }
+        } else if (inGame) {
+            nonGameStreak++
+            if (nonGameStreak >= 2) {
+                inGame = false
+                nonGameStreak = 0
+                onExitGame()
+            }
         }
     }
 
